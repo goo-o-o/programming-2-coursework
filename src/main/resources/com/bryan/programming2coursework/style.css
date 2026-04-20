@@ -1,0 +1,76 @@
+.main-window {
+    -fx-background-color: white;
+    -fx-background-radius: 30;
+}
+
+.left-pane {
+    -fx-background-color: #DB0007, linear-gradient(to top, rgba(0,0,0,0.25), transparent);
+}
+
+.right-pane {
+    -fx-background-color: white;
+}
+
+.title-label {
+    -fx-text-fill: #FFC300;
+    -fx-font-size: 16px;
+    -fx-font-family: "Segoe UI", sans-serif;
+}
+
+.title-bar {
+    -fx-background-color: #222222;
+    -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.3), 25, 0, 0, 10);
+    -fx-view-order: -1;
+    }
+
+.left-pane .label {
+    -fx-text-fill: white;
+    -fx-font-size: 32px;
+    -fx-font-weight: 900;
+}
+
+.login-fields .text-field {
+    -fx-pref-height: 45px;
+    -fx-background-color: #ffffff;
+    -fx-border-color: #e0e0e0;
+    -fx-border-radius: 8px;
+    -fx-border-width: 1.5px;
+    -fx-padding: 0 15px 0 15px;
+    -fx-font-size: 14px;
+    -fx-prompt-text-fill: #b0b0b0;
+
+    -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.05), 5, 0, 0, 2);
+
+}
+
+.login-fields .text-field:hover {
+    -fx-border-color: #bdbdbd;
+    -fx-cursor: text;
+}
+
+.login-fields .text-field:focused {
+    -fx-background-color: #ffffff;
+    -fx-border-color: #DB0007; /* McDonald's Red */
+
+    /* Deep shadow to make the field "pop" out when typing */
+    -fx-effect: dropshadow(three-pass-box, rgba(219, 0, 7, 0.2), 12, 0, 0, 0);
+}
+
+.label {
+    -fx-font-family: "Segoe UI", sans-serif;
+}
+
+.svg-icon {
+    -fx-stroke: #aaaaaa;
+    -fx-stroke-width: 2;
+    -fx-stroke-line-cap: round;
+}
+
+.window-btn:hover .svg-icon {
+    -fx-stroke: white;
+}
+
+.window-btn {
+    -fx-background-color: transparent;
+    -fx-padding: 8;
+}
