@@ -9,46 +9,54 @@ import javafx.scene.Scene;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
-import javafx.scene.shape.Rectangle;
 import javafx.stage.Stage;
 import javafx.stage.StageStyle;
 
-
+/**
+ * Main application class for McRonald's Restaurant Management System
+ */
 public class McRonalds extends Application {
 
     @Override
     public void start(Stage stage) {
-        // remove the original windows titlebar because I think its ugly
+        // Remove the original windows titlebar
         stage.initStyle(StageStyle.TRANSPARENT);
 
         // MAIN WINDOW
         VBox root = new VBox(0);
         root.getStyleClass().add("root-window");
-        root.setPrefSize(800, 600);
+        root.setPrefSize(1000, 700);
 
-        // add our own title bar
+        // Add custom title bar
         CustomTitleBar titleBar = new CustomTitleBar(stage, "McRonald's");
 
-        // initialize view switcher
+        // Initialize view switcher
         ViewSwitcher.setRoot(root);
 
         root.getChildren().add(titleBar);
 
-        // load initial login page
+        // Load initial login page
         ViewSwitcher.switchTo(new LoginPage());
 
-        // clip the entire window to a rectangle so that we can make it rounded
-        root.setClip(Utils.getClip());
+        // Clip the entire window to a rectangle for rounded corners
+        root.setClip(Utils.getClip(root));
 
-        Scene scene = new Scene(root, 800, 600);
-        // so that we can see the actual rounding instead of having a background
+        Scene scene = new Scene(root, 1000, 700);
+        // Make background transparent for rounded corners
         scene.setFill(Color.TRANSPARENT);
-        scene.getStylesheets().add(getClass().getResource("style.css").toExternalForm());
+
+        // Load CSS stylesheet
+        try {
+            String css = getClass().getResource("style.css").toExternalForm();
+            scene.getStylesheets().add(css);
+        } catch (Exception e) {
+            System.err.println("Could not load stylesheet: " + e.getMessage());
+        }
 
         stage.setScene(scene);
+        stage.setTitle("McRonald's Restaurant Management System");
         stage.show();
     }
-
 
     public static void main(String[] args) {
         launch(args);

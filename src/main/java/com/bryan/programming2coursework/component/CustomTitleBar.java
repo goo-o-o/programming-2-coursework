@@ -9,7 +9,6 @@ import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
-import javafx.scene.shape.Rectangle;
 import javafx.scene.shape.SVGPath;
 import javafx.stage.Stage;
 
@@ -19,12 +18,12 @@ public class CustomTitleBar extends HBox {
     private double xOffset = 0;
     private double yOffset = 0;
 
-    private void toggleMaximized(Stage stage) {
+    private void toggleMaximized(Stage stage, Button maxBtn) {
         if (stage.isMaximized()) {
             stage.setMaximized(false);
             maxBtn.setGraphic(Utils.getSVG(Utils.MAXIMIZE));
             // restore rounded corners
-            root.setClip(Utils.getClip());
+            root.setClip(Utils.getClip(root));
         } else {
             stage.setMaximized(true);
             maxBtn.setGraphic(Utils.getSVG(Utils.UNMAXIMIZE));
@@ -52,11 +51,11 @@ public class CustomTitleBar extends HBox {
             }
         });
         this.setOnMouseReleased(event -> {
-            // Check if the mouse is at the very top of the screen (e.g., within 5 pixels)
+            // check if mouse on top of screen
             if (event.getScreenY() < 5) {
                 stage.setMaximized(true);
 
-                // Remove the rounding clip for a perfect edge-to-edge look
+                // remove rounding border
                 if (stage.getScene().getRoot() instanceof VBox root) {
                     root.setClip(null);
                 }
@@ -81,7 +80,7 @@ public class CustomTitleBar extends HBox {
         Button maxBtn = new Button();
         SVGPath maxIcon = Utils.getSVG(stage.isMaximized() ? Utils.UNMAXIMIZE : Utils.MAXIMIZE);
         maxBtn.setGraphic(maxIcon);
-        maxBtn.setOnAction(e -> toggleMaximized(stage));
+        maxBtn.setOnAction(e -> toggleMaximized(stage, maxBtn));
         maxBtn.getStyleClass().add("window-btn");
 
 

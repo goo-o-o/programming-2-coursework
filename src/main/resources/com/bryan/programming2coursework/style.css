@@ -50,11 +50,38 @@
 
 .login-fields .text-field:focused {
     -fx-background-color: #ffffff;
-    -fx-border-color: #DB0007; /* McDonald's Red */
+    -fx-border-color: #DB0007;
 
-    /* Deep shadow to make the field "pop" out when typing */
     -fx-effect: dropshadow(three-pass-box, rgba(219, 0, 7, 0.2), 12, 0, 0, 0);
 }
+
+
+.login-fields .button:hover {
+    -fx-background-color: #ff1a21;
+    -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.2), 10, 0, 0, 0);
+}
+
+.login-fields .button:pressed {
+    -fx-background-color: #a30005;
+    -fx-effect: innershadow(three-pass-box, rgba(0,0,0,0.3), 5, 0, 0, 1);
+}
+
+.login-fields .button {
+    -fx-pref-height: 45px;
+    -fx-text-fill: #ffffff;
+    -fx-background-color: #DB0007;
+    -fx-background-radius: 50;
+    -fx-padding: 0 15px 0 15px;
+    -fx-font-size: 14px;
+    -fx-font-weight: 800;
+    -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.05), 5, 0, 0, 2);
+
+}
+
+.login-fields .hyperlink {
+    -fx-text-fill: #DB0007;
+}
+
 
 .label {
     -fx-font-family: "Segoe UI", sans-serif;
@@ -73,4 +100,42 @@
 .window-btn {
     -fx-background-color: transparent;
     -fx-padding: 8;
+}
+
+.check-box .box {
+    -fx-background-color: white;
+    -fx-border-color: #dcdcdc;
+    -fx-border-width: 2px;
+    -fx-border-radius: 4px;
+    -fx-background-radius: 4px;
+    -fx-padding: 3px;
+}
+
+.check-box .mark {
+    -fx-background-color: transparent;
+    -fx-shape: "M1.73,12.91L8.1,19.28L22.79,4.59L21.38,3.18L8.1,16.46L3.15,11.5L1.73,12.91Z";
+    -fx-scale-x: 0.8;
+    -fx-scale-y: 0.8;
+}
+
+.check-box:hover .box {
+    -fx-border-color: #DB0007;
+}
+
+.check-box:selected .box {
+    -fx-background-color: #DB0007;
+    -fx-border-color: #DB0007;
+}
+
+.check-box:selected .mark {
+    -fx-background-color: white;
+}
+
+.check-box .label {
+    -fx-font-size: 14px;
+    -fx-padding: 0 0 0 10px;
+}
+
+.check-box:focused .box {
+    -fx-effect: dropshadow(three-pass-box, rgba(33, 150, 243, 0.4), 5, 0, 0, 0);
 }
