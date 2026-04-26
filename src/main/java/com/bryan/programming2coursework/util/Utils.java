@@ -1,27 +1,41 @@
 package com.bryan.programming2coursework.util;
 
-import javafx.scene.Node;
-import javafx.scene.control.Alert;
-import javafx.scene.control.ButtonType;
-import javafx.scene.layout.Pane;
-import javafx.scene.layout.VBox;
+import com.bryan.programming2coursework.page.LoginPage;
+import javafx.geometry.Pos;
+import javafx.scene.control.*;
+import javafx.scene.effect.DropShadow;
+import javafx.scene.layout.*;
 import javafx.scene.paint.Color;
+import javafx.scene.paint.Paint;
 import javafx.scene.shape.Rectangle;
 import javafx.scene.shape.SVGPath;
+import javafx.stage.Stage;
 
 /**
  * Utility class containing helper methods and constants
  */
 public class Utils {
-    public static class Colors {
-        public static Color MCD_YELLOW = Color.web("#FFC300");
+    /**
+     * Unified the button theming code for reusability
+     */
+    public static void updateButtonStateDesign(Button button, boolean active) {
+        if (active) {
+            button.setStyle("-fx-background-color: " + Constants.MCD_RED_HEX + ";-fx-background-radius: 15; -fx-padding: 15; -fx-cursor: hand; -fx-font-weight: 800");
+            button.setEffect(new DropShadow(5, Constants.MCD_RED));
+            button.setTextFill(Color.WHITE);
+        } else {
+            button.setStyle("-fx-background-color: white; -fx-background-radius: 15; -fx-padding: 15; -fx-cursor: hand;");
+            button.setEffect(null);
+            button.setTextFill(Color.BLACK);
+        }
     }
 
-    public static String LOGO = "m195.8 17.933c23.3 0 42.2 98.3 42.2 219.7h34c0-130.7-34.3-236.5-76.3-236.5-24 0-45.2 31.7-59.2 81.5-14-49.8-35.2-81.5-59-81.5-42 0-76.2 105.7-76.2 236.4h34c0-121.4 18.7-219.6 42-219.6s42.2 90.8 42.2 202.8h33.8c0-112 19-202.8 42.3-202.8";
-    public static String MINIMIZE = "M0,5 L10,5";
-    public static String MAXIMIZE = "M2,2 H8 V8 H2 Z";
-    public static String UNMAXIMIZE = "M3,4 H7 V8 H3 Z M5,2 H9 V6 H7";
-    public static String CLOSE = "M2,2 L8,8 M8,2 L2,8";
+    public static void handleLogout() {
+        if (Utils.showConfirmation("Logout", "Are you sure you want to logout?")) {
+            SessionManager.getInstance().logout();
+            ViewSwitcher.switchTo(new LoginPage());
+        }
+    }
 
     /**
      * Create an SVG path from string data, also automatically appends a global style class
@@ -29,11 +43,12 @@ public class Utils {
     public static SVGPath getSVG(String data) {
         SVGPath path = new SVGPath();
         path.setContent(data);
+        path.setStrokeWidth(1);
         path.getStyleClass().add("svg-icon");
 
         return path;
     }
-    
+
     /**
      * Create a rounded rectangle clip for the window
      */
@@ -45,7 +60,20 @@ public class Utils {
         clip.heightProperty().bind(root.heightProperty());
         return clip;
     }
-    
+
+    // moved these into helper methods, since they might be reused in future
+    public static Region getHorizontalSpacer() {
+        Region hSpacer = new Region();
+        HBox.setHgrow(hSpacer, Priority.ALWAYS);
+        return hSpacer;
+    }
+
+    public static Region getVerticalSpacer() {
+        Region vSpacer = new Region();
+        VBox.setVgrow(vSpacer, Priority.ALWAYS);
+        return vSpacer;
+    }
+
     /**
      * Validate email format
      */
@@ -56,7 +84,7 @@ public class Utils {
         String emailRegex = "^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$";
         return email.matches(emailRegex);
     }
-    
+
     /**
      * Validate phone number
      */
@@ -68,14 +96,14 @@ public class Utils {
         String phoneRegex = "^01[0-9]{8,9}$";
         return phone.replaceAll("[\\s-]", "").matches(phoneRegex);
     }
-    
+
     /**
      * Validate password strength
      */
     public static boolean isValidPassword(String password) {
         return password != null && password.length() >= 6;
     }
-    
+
     /**
      * Format currency in Malaysian Ringgit
      */
@@ -100,32 +128,52 @@ public class Utils {
             return false;
         }
     }
-    
+
     /**
      * Show alert dialog helper
      */
     public static void showAlert(String title, String message, Alert.AlertType type) {
         Alert alert = new Alert(type);
+        // default JavaFX alert is so ugly
         alert.setTitle(title);
         alert.setHeaderText(null);
         alert.setContentText(message);
+
+        DialogPane dialogPane = alert.getDialogPane();
+
+        dialogPane.setStyle(
+                "-fx-background-color: white; -fx-padding: 10px; -fx-border-color: white; -fx-border-width: 1px; -fx-border-radius: 15px; -fx-background-radius: 15px;"
+        );
+
+        dialogPane.lookup(".content.label").setStyle(
+                "-fx-font-size: 14px; -fx-text-fill: black; -fx-font-weight: normal;"
+        );
+
+        // buttons
+        Button okButton = (Button) dialogPane.lookupButton(ButtonType.OK);
+        if (okButton != null) {
+            okButton.setStyle(
+                    "-fx-background-color: #ffbc0d; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 10px; -fx-cursor: hand; -fx-padding: 8px 20px;"
+            );
+        }
+
         alert.showAndWait();
     }
-    
+
     /**
      * Show error alert
      */
     public static void showError(String title, String message) {
         showAlert(title, message, Alert.AlertType.ERROR);
     }
-    
+
     /**
      * Show info alert
      */
     public static void showInfo(String title, String message) {
         showAlert(title, message, Alert.AlertType.INFORMATION);
     }
-    
+
     /**
      * Show confirmation dialog
      */
@@ -135,5 +183,65 @@ public class Utils {
         alert.setHeaderText(null);
         alert.setContentText(message);
         return alert.showAndWait().orElse(ButtonType.CANCEL) == ButtonType.OK;
+    }
+
+    public static StackPane createPasswordFieldWithToggle(PasswordField pf, TextField tf) {
+        SVGPath eyeOpen = getSVG(Constants.EYE_OPEN);
+        SVGPath eyeClosed = getSVG(Constants.EYE_CLOSED);
+        eyeOpen.setStrokeWidth(0);
+        eyeClosed.setStrokeWidth(0);
+        eyeOpen.setFill(Paint.valueOf("gray"));
+        eyeClosed.setFill(Paint.valueOf("gray"));
+
+        Button toggleBtn = new Button();
+        toggleBtn.setGraphic(eyeClosed);
+        toggleBtn.setStyle("-fx-background-color: transparent; -fx-cursor: hand; -fx-padding: 0 10 0 0;");
+        toggleBtn.setMaxHeight(Double.MAX_VALUE); // for easier clicking
+
+
+        // sync the tf and pf fields
+        tf.textProperty().bindBidirectional(pf.textProperty());
+        tf.setVisible(false);
+        tf.setManaged(false);
+
+        toggleBtn.setOnAction(e -> {
+            boolean isCurrentlyShown = tf.isVisible();
+            tf.setVisible(!isCurrentlyShown);
+            tf.setManaged(!isCurrentlyShown);
+            pf.setVisible(isCurrentlyShown);
+            pf.setManaged(isCurrentlyShown);
+
+            // update icon
+            toggleBtn.setGraphic(!isCurrentlyShown ? eyeOpen : eyeClosed);
+        });
+
+        pf.setStyle("-fx-padding: 0 40 0 15;");
+        tf.setStyle("-fx-padding: 0 40 0 15;");
+
+        StackPane stack = new StackPane(pf, tf, toggleBtn);
+        StackPane.setAlignment(toggleBtn, Pos.CENTER_RIGHT); // push to right
+
+        return stack;
+    }
+
+    /**
+     * It's possible to modify URL dimensions from a scene7 server. This is mainly used to hasten loading of images since I don't want to download the files locally, hopefully nothing goes wrong during presentation
+     */
+    public static String modifyUrlDimensions(String imageUrl, int width, int height) {
+        if (imageUrl == null || imageUrl.isEmpty()) return null;
+
+        if (imageUrl.contains("scene7.com")) {
+            // only substring if the parameters are present
+            String base = imageUrl.contains("?") ? imageUrl.substring(0, imageUrl.indexOf("?")) : imageUrl;
+            return base + "?wid=" + width + "&hei=" + height + "&fmt=png-alpha&qlt=80";
+        }
+        return imageUrl;
+    }
+
+    public static String toRGBCode(Color color) {
+        return String.format("#%02X%02X%02X",
+                (int) (color.getRed() * 255),
+                (int) (color.getGreen() * 255),
+                (int) (color.getBlue() * 255));
     }
 }

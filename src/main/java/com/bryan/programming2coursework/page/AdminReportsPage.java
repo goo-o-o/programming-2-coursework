@@ -2,6 +2,7 @@ package com.bryan.programming2coursework.page;
 
 import com.bryan.programming2coursework.dao.MenuItemDAO;
 import com.bryan.programming2coursework.dao.OrderDAO;
+import com.bryan.programming2coursework.model.MenuItem;
 import com.bryan.programming2coursework.model.Order;
 import com.bryan.programming2coursework.model.Order.OrderStatus;
 import com.bryan.programming2coursework.model.OrderItem;
@@ -207,12 +208,12 @@ public class AdminReportsPage extends VBox {
             .filter(o -> o.getStatus() == OrderStatus.COMPLETED)
             .collect(Collectors.toList());
         
-        Map<String, Double> categoryTotals = new HashMap<>();
-        Map<String, Integer> categoryQuantities = new HashMap<>();
+        Map<MenuItem.MenuCategory, Double> categoryTotals = new HashMap<>();
+        Map<MenuItem.MenuCategory, Integer> categoryQuantities = new HashMap<>();
         
         for (Order order : orders) {
             for (OrderItem item : order.getItems()) {
-                String category = item.getMenuItem().getCategory();
+                MenuItem.MenuCategory category = item.getMenuItem().getCategory();
                 categoryTotals.merge(category, item.getSubtotal(), Double::sum);
                 categoryQuantities.merge(category, item.getQuantity(), Integer::sum);
             }
@@ -252,7 +253,7 @@ public class AdminReportsPage extends VBox {
         XYChart.Series<String, Number> series = new XYChart.Series<>();
         series.setName("Sales");
         
-        data.forEach(cs -> series.getData().add(new XYChart.Data<>(cs.getCategory(), cs.getSales())));
+        data.forEach(cs -> series.getData().add(new XYChart.Data<>(cs.getCategory().display, cs.getSales())));
         chart.getData().add(series);
         
         section.getChildren().addAll(title, new Separator(), chart, table);
@@ -269,7 +270,7 @@ public class AdminReportsPage extends VBox {
         
         List<Order> orders = getFilteredOrders().stream()
             .filter(o -> o.getStatus() == OrderStatus.COMPLETED)
-            .collect(Collectors.toList());
+            .toList();
         
         Map<LocalDate, Double> dateSales = new TreeMap<>();
         Map<LocalDate, Integer> dateOrders = new TreeMap<>();
@@ -317,7 +318,7 @@ public class AdminReportsPage extends VBox {
         
         List<Order> orders = getFilteredOrders().stream()
             .filter(o -> o.getStatus() == OrderStatus.COMPLETED)
-            .collect(Collectors.toList());
+            .toList();
         
         Map<String, Integer> itemQuantities = new HashMap<>();
         Map<String, Double> itemSales = new HashMap<>();
@@ -399,7 +400,7 @@ public class AdminReportsPage extends VBox {
         List<Order> orders = getFilteredOrders();
         List<Order> completed = orders.stream()
             .filter(o -> o.getStatus() == OrderStatus.COMPLETED)
-            .collect(Collectors.toList());
+            .toList();
         
         double total = completed.stream().mapToDouble(Order::getTotalAmount).sum();
         
@@ -415,17 +416,17 @@ public class AdminReportsPage extends VBox {
     
     // Helper classes for TableView
     public static class CategorySales {
-        private String category;
+        private MenuItem.MenuCategory category;
         private Integer quantity;
         private Double sales;
         
-        public CategorySales(String category, Integer quantity, Double sales) {
+        public CategorySales(MenuItem.MenuCategory category, Integer quantity, Double sales) {
             this.category = category;
             this.quantity = quantity;
             this.sales = sales;
         }
         
-        public String getCategory() { return category; }
+        public MenuItem.MenuCategory getCategory() { return category; }
         public Integer getQuantity() { return quantity; }
         public Double getSales() { return sales; }
     }

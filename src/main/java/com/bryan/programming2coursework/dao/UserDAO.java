@@ -1,168 +1,112 @@
 package com.bryan.programming2coursework.dao;
 
 import com.bryan.programming2coursework.model.User;
-import com.bryan.programming2coursework.model.User.UserRole;
+import com.bryan.programming2coursework.util.DatabaseManager;
 
-import java.io.*;
-import java.util.ArrayList;
-import java.util.List;
+import java.sql.*;
 import java.util.Optional;
 
 /**
- * Data Access Object for User persistence using binary file storage
+ * Data Access Object for User persistence using SQLite
  */
 public class UserDAO {
-    private static final String DATA_FILE = "data/users.dat";
     private static UserDAO instance;
-    private List<User> users;
-    private int nextId;
-    
+
     private UserDAO() {
-        users = new ArrayList<>();
-        loadFromFile();
-        
-        // Create default admin if no users exist
-        if (users.isEmpty()) {
-            createDefaultUsers();
-        }
+        // Database initialized in DatabaseManager
     }
-    
+
     public static synchronized UserDAO getInstance() {
         if (instance == null) {
             instance = new UserDAO();
         }
         return instance;
     }
-    
-    private void createDefaultUsers() {
-        // Default admin account
-        User admin = new User(nextId++, "admin", "admin123", UserRole.ADMIN, 
-                            "admin@mcronalds.com", "0123456789");
-        users.add(admin);
-        
-        // Default customer account for testing
-        User customer = new User(nextId++, "customer", "customer123", UserRole.CUSTOMER,
-                               "customer@example.com", "0987654321");
-        users.add(customer);
-        
-        saveToFile();
-    }
-    
+
     /**
-     * Load users from binary file
-     */
-    @SuppressWarnings("unchecked")
-    private void loadFromFile() {
-        File file = new File(DATA_FILE);
-        
-        // Create data directory if it doesn't exist
-        file.getParentFile().mkdirs();
-        
-        if (!file.exists()) {
-            nextId = 1;
-            return;
-        }
-        
-        try (ObjectInputStream ois = new ObjectInputStream(new FileInputStream(file))) {
-            users = (List<User>) ois.readObject();
-            nextId = ois.readInt();
-        } catch (IOException | ClassNotFoundException e) {
-            System.err.println("Error loading users: " + e.getMessage());
-            users = new ArrayList<>();
-            nextId = 1;
-        }
-    }
-    
-    /**
-     * Save users to binary file
-     */
-    public void saveToFile() {
-        File file = new File(DATA_FILE);
-        file.getParentFile().mkdirs();
-        
-        try (ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(file))) {
-            oos.writeObject(users);
-            oos.writeInt(nextId);
-        } catch (IOException e) {
-            System.err.println("Error saving users: " + e.getMessage());
-        }
-    }
-    
-    /**
-     * Authenticate user
+     * Authenticate user with username and password
      */
     public Optional<User> authenticate(String username, String password) {
-        return users.stream()
-                   .filter(u -> u.getUsername().equals(username) && u.getPassword().equals(password))
-                   .findFirst();
-    }
-    
-    /**
-     * Create new user
-     */
-    public User create(User user) {
-        // Check if username already exists
-        if (findByUsername(user.getUsername()).isPresent()) {
-            throw new IllegalArgumentException("Username already exists");
+        String sql = "SELECT * FROM users WHERE username = ? AND password = ?";
+
+        try (Connection conn = DatabaseManager.getConnection();
+             PreparedStatement statement = conn.prepareStatement(sql)) {
+
+            statement.setString(1, username);
+            statement.setString(2, password);
+            ResultSet rs = statement.executeQuery();
+
+            if (rs.next()) {
+                return Optional.of(mapResultSetToUser(rs));
+            }
+        } catch (SQLException e) {
+            System.err.println("Error authenticating user: " + e.getMessage());
+            e.printStackTrace();
         }
-        
-        user.setId(nextId++);
-        users.add(user);
-        saveToFile();
+        return Optional.empty();
+    }
+
+    /**
+     * Create a new user
+     */
+    public void create(User user) {
+        String sql = "INSERT INTO users(username, password, role, email, phone) VALUES(?,?,?,?,?)";
+
+        try (Connection conn = DatabaseManager.getConnection();
+             PreparedStatement statement = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
+
+            statement.setString(1, user.getUsername());
+            statement.setString(2, user.getPassword());
+            statement.setString(3, user.getRole().toString());
+            statement.setString(4, user.getEmail());
+            statement.setString(5, user.getPhone());
+
+            statement.executeUpdate();
+
+            // Get the auto-incremented ID
+            ResultSet generatedKeys = statement.getGeneratedKeys();
+            if (generatedKeys.next()) {
+                user.setId(generatedKeys.getInt(1));
+            }
+        } catch (SQLException e) {
+            System.err.println("Error creating user: " + e.getMessage());
+            throw new IllegalArgumentException("Error creating user: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Helper to convert database row to User object
+     */
+    private User mapResultSetToUser(ResultSet rs) throws SQLException {
+        User user = new User();
+        user.setId(rs.getInt("id"));
+        user.setUsername(rs.getString("username"));
+        user.setPassword(rs.getString("password"));
+        user.setRole(User.UserRole.valueOf(rs.getString("role")));
+        user.setEmail(rs.getString("email"));
+        user.setPhone(rs.getString("phone"));
         return user;
     }
-    
+
     /**
-     * Find user by username
-     */
-    public Optional<User> findByUsername(String username) {
-        return users.stream()
-                   .filter(u -> u.getUsername().equals(username))
-                   .findFirst();
-    }
-    
-    /**
-     * Find user by ID
-     */
-    public Optional<User> findById(int id) {
-        return users.stream()
-                   .filter(u -> u.getId() == id)
-                   .findFirst();
-    }
-    
-    /**
-     * Get all users
-     */
-    public List<User> findAll() {
-        return new ArrayList<>(users);
-    }
-    
-    /**
-     * Update user
-     */
-    public void update(User user) {
-        for (int i = 0; i < users.size(); i++) {
-            if (users.get(i).getId() == user.getId()) {
-                users.set(i, user);
-                saveToFile();
-                return;
-            }
-        }
-        throw new IllegalArgumentException("User not found");
-    }
-    
-    /**
-     * Delete user
-     */
-    public void delete(int id) {
-        users.removeIf(u -> u.getId() == id);
-        saveToFile();
-    }
-    
-    /**
-     * Check if username exists
+     * Check if username already exists
      */
     public boolean usernameExists(String username) {
-        return findByUsername(username).isPresent();
+        String sql = "SELECT COUNT(*) FROM users WHERE username = ?";
+
+        try (Connection conn = DatabaseManager.getConnection();
+             PreparedStatement statement = conn.prepareStatement(sql)) {
+
+            statement.setString(1, username);
+            ResultSet rs = statement.executeQuery();
+
+            if (rs.next()) {
+                return rs.getInt(1) > 0;
+            }
+        } catch (SQLException exception) {
+            System.err.println("Error checking username: " + exception.getMessage());
+            exception.printStackTrace();
+        }
+        return false;
     }
 }

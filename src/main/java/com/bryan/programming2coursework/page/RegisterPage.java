@@ -1,7 +1,6 @@
 package com.bryan.programming2coursework.page;
 
 import com.bryan.programming2coursework.dao.UserDAO;
-import com.bryan.programming2coursework.model.User;
 import com.bryan.programming2coursework.model.User.UserRole;
 import com.bryan.programming2coursework.util.Utils;
 import com.bryan.programming2coursework.util.ViewSwitcher;
@@ -10,6 +9,7 @@ import javafx.geometry.Pos;
 import javafx.scene.control.*;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
+import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.scene.text.Text;
 import javafx.scene.text.TextAlignment;
@@ -19,6 +19,11 @@ import javafx.scene.text.TextFlow;
  * Registration page for new users
  */
 public class RegisterPage extends LoginPage {
+    Label usernameError;
+    Label passwordError;
+    Label confirmPasswordError;
+    Label emailError;
+    Label phoneError;
 
     public RegisterPage() {
         super();
@@ -26,6 +31,14 @@ public class RegisterPage extends LoginPage {
 
     @Override
     protected VBox getRightBox() {
+        // initialize label
+        usernameError = getErrorLabel();
+        passwordError = getErrorLabel();
+        confirmPasswordError = getErrorLabel();
+        emailError = getErrorLabel();
+        phoneError = getErrorLabel();
+
+
         VBox rightBox = new VBox(20);
         rightBox.getStyleClass().add("right-pane");
         rightBox.setAlignment(Pos.CENTER);
@@ -45,9 +58,18 @@ public class RegisterPage extends LoginPage {
 
         PasswordField password = new PasswordField();
         password.setPromptText("Password (min 6 characters)");
+        TextField passwordText = new TextField();
+        passwordText.setPromptText("Password (min 6 characters)");
+
+        StackPane passwordRow = Utils.createPasswordFieldWithToggle(password, passwordText);
 
         PasswordField confirmPassword = new PasswordField();
         confirmPassword.setPromptText("Confirm Password");
+        TextField confirmPasswordText = new TextField();
+        confirmPasswordText.setPromptText("Confirm Password");
+
+        StackPane confirmPasswordRow = Utils.createPasswordFieldWithToggle(confirmPassword, confirmPasswordText);
+
 
         TextField email = new TextField();
         email.setPromptText("Email");
@@ -57,7 +79,6 @@ public class RegisterPage extends LoginPage {
 
         CheckBox toggleButton = new CheckBox("Admin Account");
 
-
         registerFields.getStyleClass().add("login-fields");
         Button registerBtn = new Button("Sign Up");
 
@@ -66,7 +87,8 @@ public class RegisterPage extends LoginPage {
                 password.getText(),
                 confirmPassword.getText(),
                 email.getText(),
-                phone.getText()
+                phone.getText(),
+                toggleButton.isSelected()
         ));
 
         Text textPart = new Text("Already have an account? ");
@@ -81,62 +103,91 @@ public class RegisterPage extends LoginPage {
         registerBtn.prefWidthProperty().bind(registerFields.widthProperty().multiply(0.8F));
         registerFields.maxWidthProperty().bind(rightBox.widthProperty().divide(2));
         registerFields.setAlignment(Pos.CENTER);
-        registerFields.getChildren().addAll(username, password, confirmPassword, email, phone, toggleButton, registerBtn, loginPrompt);
+        registerFields.getChildren().addAll(usernameError, username, passwordError, passwordRow, confirmPasswordError, confirmPasswordRow, emailError, email, phoneError, phone, toggleButton, registerBtn, loginPrompt);
 
         rightBox.getChildren().addAll(hello, signUp, registerFields);
         return rightBox;
+    }
+
+    private static Label getErrorLabel() {
+        Label error = new Label();
+        error.setStyle("-fx-text-fill: red; -fx-font-size: 12px;");
+        error.setManaged(false);
+        error.setVisible(false);
+        return error;
+    }
+
+    private static void showError(Label errorLabel, String text) {
+        errorLabel.setManaged(true);
+        errorLabel.setVisible(true);
+        errorLabel.setText(text);
+    }
+
+    private void clearErrors() {
+        Label[] errorLabels = new Label[]{usernameError, passwordError, confirmPasswordError, emailError, phoneError};
+        for (Label label : errorLabels) {
+            label.setVisible(false);
+            label.setManaged(false);
+        }
     }
 
     /**
      * Handle user registration
      */
     private void handleRegister(String username, String password, String confirmPassword,
-                                String email, String phone) {
+                                String email, String phone, boolean isAdmin) {
         try {
+            clearErrors();
             if (username == null || username.trim().isEmpty()) {
-                Utils.showError("Registration Error", "Please enter username");
+                showError(usernameError, "Please enter username");
+//                Utils.showError("Registration Error", "Please enter username");
                 return;
-            }
-
-            if (username.trim().length() < 3) {
-                Utils.showError("Registration Error", "Username must be at least 3 characters");
+            } else if (username.trim().length() < 3) {
+                showError(usernameError, "Username must be at least 3 characters");
+//                Utils.showError("Registration Error", "Username must be at least 3 characters");
                 return;
             }
 
             if (!Utils.isValidPassword(password)) {
-                Utils.showError("Registration Error", "Password must be at least 6 characters");
+                showError(passwordError, "Password must be at least 6 characters");
+//                Utils.showError("Registration Error", "Password must be at least 6 characters");
+                return;
+            } else if (!password.equals(confirmPassword)) {
+                showError(confirmPasswordError, "Passwords do not match");
+//                Utils.showError("Registration Error", "Passwords do not match");
                 return;
             }
-
-            if (!password.equals(confirmPassword)) {
-                Utils.showError("Registration Error", "Passwords do not match");
+            if (email == null || email.trim().isEmpty()) {
+                showError(emailError, "Please enter email");
+                return;
+            } else if (!Utils.isValidEmail(email)) {
+                showError(emailError, "Invalid email format");
+//                Utils.showError("Registration Error", "Invalid email format");
                 return;
             }
-
-            if (email != null && !email.trim().isEmpty() && !Utils.isValidEmail(email)) {
-                Utils.showError("Registration Error", "Invalid email format");
+            if (phone == null || phone.trim().isEmpty()) {
+                showError(phoneError, "Please enter phone number");
                 return;
-            }
-
-            if (phone != null && !phone.trim().isEmpty() && !Utils.isValidPhone(phone)) {
-                Utils.showError("Registration Error", "Invalid phone number format (e.g., 0123456789)");
+            } else if (!Utils.isValidPhone(phone)) {
+                showError(phoneError, "Invalid phone number format");
+//                Utils.showError("Registration Error", "Invalid phone number format (e.g., 0123456789)");
                 return;
             }
 
             // check if username already exists
             UserDAO userDAO = UserDAO.getInstance();
             if (userDAO.usernameExists(username.trim())) {
-                Utils.showError("Registration Error", "Username already exists");
+                Utils.showError("Registration Error", "User already exists");
                 return;
             }
 
             // create new user
-            User newUser = new User();
+            com.bryan.programming2coursework.model.User newUser = new com.bryan.programming2coursework.model.User();
             newUser.setUsername(username.trim());
             newUser.setPassword(password);
-            newUser.setEmail(email != null ? email.trim() : "");
-            newUser.setPhone(phone != null ? phone.trim() : "");
-            newUser.setRole(UserRole.CUSTOMER);
+            newUser.setEmail(email.trim()); // made not nullable
+            newUser.setPhone(phone.trim()); // made not nullable
+            newUser.setRole(isAdmin ? UserRole.ADMIN : UserRole.CUSTOMER);
 
             userDAO.create(newUser);
 

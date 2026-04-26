@@ -89,7 +89,6 @@
 
 .svg-icon {
     -fx-stroke: #aaaaaa;
-    -fx-stroke-width: 2;
     -fx-stroke-line-cap: round;
 }
 
@@ -101,6 +100,11 @@
     -fx-background-color: transparent;
     -fx-padding: 8;
 }
+
+.clear-sort-btn:hover .svg-icon {
+    -fx-stroke: #DB0007;
+}
+
 
 .check-box .box {
     -fx-background-color: white;

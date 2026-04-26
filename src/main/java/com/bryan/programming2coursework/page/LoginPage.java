@@ -2,6 +2,7 @@ package com.bryan.programming2coursework.page;
 
 import com.bryan.programming2coursework.dao.UserDAO;
 import com.bryan.programming2coursework.model.User;
+import com.bryan.programming2coursework.util.Constants;
 import com.bryan.programming2coursework.util.SessionManager;
 import com.bryan.programming2coursework.util.Utils;
 import com.bryan.programming2coursework.util.ViewSwitcher;
@@ -11,6 +12,7 @@ import javafx.scene.Group;
 import javafx.scene.control.*;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
+import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.scene.shape.SVGPath;
 import javafx.scene.text.Text;
@@ -49,6 +51,10 @@ public class LoginPage extends HBox {
 
         PasswordField password = new PasswordField();
         password.setPromptText("Password");
+        TextField passwordText = new TextField();
+        passwordText.setPromptText("Password");
+
+        StackPane passwordRow = Utils.createPasswordFieldWithToggle(password, passwordText);
 
         loginFields.getStyleClass().add("login-fields");
         Button loginBtn = new Button("Login");
@@ -56,8 +62,9 @@ public class LoginPage extends HBox {
         // login button action
         loginBtn.setOnAction(e -> handleLogin(username.getText(), password.getText()));
 
-        // let Enter key login
+        // let Enter key login, edit: now with both fields
         password.setOnAction(e -> handleLogin(username.getText(), password.getText()));
+        passwordText.setOnAction(e -> handleLogin(username.getText(), password.getText()));
 
         Text textPart = new Text("Don't have an account? ");
         textPart.setStyle("-fx-fill: gray");
@@ -71,7 +78,7 @@ public class LoginPage extends HBox {
         loginBtn.prefWidthProperty().bind(loginFields.widthProperty().multiply(0.8F));
         loginFields.maxWidthProperty().bind(rightBox.widthProperty().divide(2));
         loginFields.setAlignment(Pos.CENTER);
-        loginFields.getChildren().addAll(username, password, loginBtn, signUpPrompt);
+        loginFields.getChildren().addAll(username, passwordRow, loginBtn, signUpPrompt);
 
         rightBox.getChildren().addAll(hello, signIn, loginFields);
         return rightBox;
@@ -102,14 +109,13 @@ public class LoginPage extends HBox {
                 User user = userOpt.get();
                 SessionManager.getInstance().login(user);
 
-                // Navigate to appropriate dashboard
+                // navigate appropriately
                 if (user.isAdmin()) {
                     ViewSwitcher.switchTo(new AdminDashboardPage());
                 } else {
                     ViewSwitcher.switchTo(new CustomerDashboardPage());
                 }
 
-                Utils.showInfo("Login Successful", "Welcome, " + user.getUsername() + "!");
             } else {
                 Utils.showError("Login Failed", "Invalid username or password");
             }
@@ -120,8 +126,8 @@ public class LoginPage extends HBox {
     }
 
     protected VBox getBanner() {
-        SVGPath logo = Utils.getSVG(Utils.LOGO);
-        logo.setFill(Utils.Colors.MCD_YELLOW); // McD yellow
+        SVGPath logo = Utils.getSVG(Constants.LOGO);
+        logo.setFill(Constants.MCD_YELLOW);
         logo.setScaleX(0.4);
         logo.setScaleY(0.4);
         Group logoWrapper = new Group(logo);

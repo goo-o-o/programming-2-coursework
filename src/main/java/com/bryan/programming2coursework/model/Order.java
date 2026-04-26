@@ -1,6 +1,5 @@
 package com.bryan.programming2coursework.model;
 
-import java.io.Serial;
 import java.io.Serializable;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -11,8 +10,6 @@ import java.util.List;
  * Order model representing a customer order
  */
 public class Order implements Serializable {
-    @Serial
-    private static final long serialVersionUID = 1L;
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
     private int id;
@@ -131,19 +128,19 @@ public class Order implements Serializable {
 
     public void calculateTotal() {
         totalAmount = items.stream()
-                          .mapToDouble(OrderItem::getSubtotal)
-                          .sum();
+                .mapToDouble(OrderItem::getSubtotal)
+                .sum();
     }
 
     public int getTotalItems() {
         return items.stream()
-                   .mapToInt(OrderItem::getQuantity)
-                   .sum();
+                .mapToInt(OrderItem::getQuantity)
+                .sum();
     }
 
     @Override
     public String toString() {
         return String.format("Order #%d - %s - RM%.2f - %s",
-                           id, getFormattedOrderDate(), totalAmount, status);
+                id, getFormattedOrderDate(), totalAmount, status);
     }
 }

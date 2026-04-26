@@ -1,5 +1,6 @@
 package com.bryan.programming2coursework.component;
 
+import com.bryan.programming2coursework.util.Constants;
 import com.bryan.programming2coursework.util.Utils;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
@@ -21,12 +22,12 @@ public class CustomTitleBar extends HBox {
     private void toggleMaximized(Stage stage, Button maxBtn) {
         if (stage.isMaximized()) {
             stage.setMaximized(false);
-            maxBtn.setGraphic(Utils.getSVG(Utils.MAXIMIZE));
+            maxBtn.setGraphic(Utils.getSVG(Constants.MAXIMIZE));
             // restore rounded corners
             root.setClip(Utils.getClip(root));
         } else {
             stage.setMaximized(true);
-            maxBtn.setGraphic(Utils.getSVG(Utils.UNMAXIMIZE));
+            maxBtn.setGraphic(Utils.getSVG(Constants.UNMAXIMIZE));
             root.setClip(null);
         }
     }
@@ -72,20 +73,20 @@ public class CustomTitleBar extends HBox {
 
 
         Button minBtn = new Button();
-        SVGPath minIcon = Utils.getSVG(Utils.MINIMIZE);
+        SVGPath minIcon = Utils.getSVG(Constants.MINIMIZE);
         minBtn.setGraphic(minIcon);
         minBtn.setOnAction(e -> stage.setIconified(true));
         minBtn.getStyleClass().add("window-btn");
 
         Button maxBtn = new Button();
-        SVGPath maxIcon = Utils.getSVG(stage.isMaximized() ? Utils.UNMAXIMIZE : Utils.MAXIMIZE);
+        SVGPath maxIcon = Utils.getSVG(stage.isMaximized() ? Constants.UNMAXIMIZE : Constants.MAXIMIZE);
         maxBtn.setGraphic(maxIcon);
         maxBtn.setOnAction(e -> toggleMaximized(stage, maxBtn));
         maxBtn.getStyleClass().add("window-btn");
 
 
         Button closeBtn = new Button();
-        SVGPath closeIcon = Utils.getSVG(Utils.CLOSE);
+        SVGPath closeIcon = Utils.getSVG(Constants.CLOSE);
         closeBtn.setGraphic(closeIcon);
         closeBtn.setOnAction(e -> System.exit(0));
         closeBtn.getStyleClass().add("window-btn");

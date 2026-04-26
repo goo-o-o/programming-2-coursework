@@ -24,7 +24,7 @@ public class AdminDashboardPage extends VBox {
     private MenuItemDAO menuItemDAO;
     private TableView<MenuItem> menuTable;
     private TextField searchField;
-    private ComboBox<String> categoryFilter;
+    private ComboBox<MenuItem.MenuCategory> categoryFilter;
     
     public AdminDashboardPage() {
         this.menuItemDAO = MenuItemDAO.getInstance();
@@ -86,9 +86,7 @@ public class AdminDashboardPage extends VBox {
         
         // Category filter
         categoryFilter = new ComboBox<>();
-        categoryFilter.getItems().add("All Categories");
         categoryFilter.getItems().addAll(menuItemDAO.getAllCategories());
-        categoryFilter.setValue("All Categories");
         categoryFilter.setOnAction(e -> filterMenu());
         
         Button addBtn = new Button("+ Add New Item");
@@ -125,11 +123,24 @@ public class AdminDashboardPage extends VBox {
         TableColumn<MenuItem, String> nameCol = new TableColumn<>("Item Name");
         nameCol.setCellValueFactory(new PropertyValueFactory<>("name"));
         nameCol.setPrefWidth(200);
-        
-        TableColumn<MenuItem, String> categoryCol = new TableColumn<>("Category");
+
+        TableColumn<MenuItem, MenuItem.MenuCategory> categoryCol = new TableColumn<>("Category");
         categoryCol.setCellValueFactory(new PropertyValueFactory<>("category"));
         categoryCol.setPrefWidth(120);
-        
+
+        // make it render differently
+        categoryCol.setCellFactory(column -> new TableCell<>() {
+            @Override
+            protected void updateItem(MenuItem.MenuCategory item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty || item == null) {
+                    setText(null);
+                } else {
+                    setText(item.display);
+                }
+            }
+        });
+
         TableColumn<MenuItem, Double> priceCol = new TableColumn<>("Price (RM)");
         priceCol.setCellValueFactory(new PropertyValueFactory<>("price"));
         priceCol.setPrefWidth(100);
@@ -178,21 +189,19 @@ public class AdminDashboardPage extends VBox {
     }
     
     private void loadMenuItems() {
-        List<MenuItem> items = menuItemDAO.findAll();
+        List<MenuItem> items = menuItemDAO.getAllItems();
         menuTable.setItems(FXCollections.observableArrayList(items));
         
-        // Update category filter
+        // update category filter
         categoryFilter.getItems().clear();
-        categoryFilter.getItems().add("All Categories");
-        categoryFilter.getItems().addAll(menuItemDAO.getAllCategories());
-        categoryFilter.setValue("All Categories");
+        categoryFilter.getItems().addAll(MenuItem.MenuCategory.values());
     }
     
     private void filterMenu() {
         String search = searchField.getText().toLowerCase();
-        String category = categoryFilter.getValue();
+        MenuItem.MenuCategory category = categoryFilter.getValue();
         
-        List<MenuItem> allItems = menuItemDAO.findAll();
+        List<MenuItem> allItems = menuItemDAO.getAllItems();
         
         menuTable.setItems(FXCollections.observableArrayList(
             allItems.stream()
@@ -206,40 +215,38 @@ public class AdminDashboardPage extends VBox {
                 .toList()
         ));
     }
-    
+
     private void showAddDialog() {
         Dialog<MenuItem> dialog = new Dialog<>();
         dialog.setTitle("Add New Menu Item");
         dialog.setHeaderText("Enter item details");
-        
+
         GridPane grid = createItemForm(null);
         dialog.getDialogPane().setContent(grid);
-        
+
         ButtonType addButtonType = new ButtonType("Add", ButtonBar.ButtonData.OK_DONE);
         dialog.getDialogPane().getButtonTypes().addAll(addButtonType, ButtonType.CANCEL);
-        
+
         dialog.setResultConverter(dialogButton -> {
             if (dialogButton == addButtonType) {
                 return extractItemFromForm(grid, null);
             }
             return null;
         });
-        
+
         dialog.showAndWait().ifPresent(item -> {
-            if (item != null) {
-                menuItemDAO.create(item);
-                Utils.showInfo("Success", "Menu item added successfully");
-                loadMenuItems();
-            }
+            menuItemDAO.create(item);
+            Utils.showInfo("Success", "Menu item added successfully");
+            loadMenuItems();
         });
     }
     
-    private void showEditDialog(MenuItem item) {
+    private void showEditDialog(MenuItem originalItem) {
         Dialog<MenuItem> dialog = new Dialog<>();
         dialog.setTitle("Edit Menu Item");
         dialog.setHeaderText("Edit item details");
         
-        GridPane grid = createItemForm(item);
+        GridPane grid = createItemForm(originalItem);
         dialog.getDialogPane().setContent(grid);
         
         ButtonType saveButtonType = new ButtonType("Save", ButtonBar.ButtonData.OK_DONE);
@@ -247,17 +254,15 @@ public class AdminDashboardPage extends VBox {
         
         dialog.setResultConverter(dialogButton -> {
             if (dialogButton == saveButtonType) {
-                return extractItemFromForm(grid, item);
+                return extractItemFromForm(grid, originalItem);
             }
             return null;
         });
         
         dialog.showAndWait().ifPresent(updatedItem -> {
-            if (updatedItem != null) {
-                menuItemDAO.update(updatedItem);
-                Utils.showInfo("Success", "Menu item updated successfully");
-                loadMenuItems();
-            }
+            menuItemDAO.update(originalItem, updatedItem);
+            Utils.showInfo("Success", "Menu item updated successfully");
+            loadMenuItems();
         });
     }
     
@@ -268,7 +273,7 @@ public class AdminDashboardPage extends VBox {
         grid.setPadding(new Insets(20));
         
         TextField nameField = new TextField(item != null ? item.getName() : "");
-        TextField categoryField = new TextField(item != null ? item.getCategory() : "");
+        TextField categoryField = new TextField(item != null ? item.getCategory().display : "");
         TextField priceField = new TextField(item != null ? String.valueOf(item.getPrice()) : "");
         TextField stockField = new TextField(item != null ? String.valueOf(item.getStockQuantity()) : "");
         TextArea descField = new TextArea(item != null ? item.getDescription() : "");
@@ -287,7 +292,7 @@ public class AdminDashboardPage extends VBox {
         
         return grid;
     }
-    
+
     private MenuItem extractItemFromForm(GridPane grid, MenuItem existingItem) {
         try {
             TextField nameField = (TextField) grid.getChildren().get(1);
@@ -295,41 +300,66 @@ public class AdminDashboardPage extends VBox {
             TextField priceField = (TextField) grid.getChildren().get(5);
             TextField stockField = (TextField) grid.getChildren().get(7);
             TextArea descField = (TextArea) grid.getChildren().get(9);
-            
+
             String name = nameField.getText().trim();
-            String category = categoryField.getText().trim();
+            String categoryStr = categoryField.getText().trim().toUpperCase(); // ensure uppercase for enum
             String priceStr = priceField.getText().trim();
             String stockStr = stockField.getText().trim();
             String desc = descField.getText().trim();
-            
-            // Validation
-            if (name.isEmpty() || category.isEmpty()) {
+
+            if (name.isEmpty() || categoryStr.isEmpty()) {
                 Utils.showError("Validation Error", "Name and category are required");
                 return null;
             }
-            
+
             if (!Utils.isPositiveNumber(priceStr)) {
                 Utils.showError("Validation Error", "Invalid price");
                 return null;
             }
-            
+
             if (!Utils.isPositiveInteger(stockStr) && !stockStr.equals("0")) {
                 Utils.showError("Validation Error", "Invalid stock quantity");
                 return null;
             }
-            
+
+            // convert to enum with fallback
+            MenuItem.MenuCategory category;
+            try {
+                category = MenuItem.MenuCategory.valueOf(categoryStr);
+            } catch (IllegalArgumentException e) {
+                Utils.showError("Category Error", "Invalid category name: " + categoryStr);
+                return null;
+            }
+
             double price = Double.parseDouble(priceStr);
             int stock = Integer.parseInt(stockStr);
-            
-            MenuItem item = existingItem != null ? existingItem : new MenuItem();
-            item.setName(name);
-            item.setCategory(category);
-            item.setPrice(price);
-            item.setStockQuantity(stock);
-            item.setDescription(desc);
-            
-            return item;
-            
+
+            if (existingItem != null) {
+                // update existing
+                existingItem.setName(name);
+                existingItem.setCategory(category);
+                existingItem.setPrice(price);
+                existingItem.setStockQuantity(stock);
+                existingItem.setDescription(desc);
+                return existingItem;
+            } else {
+                // Create a brand new item using your constructor
+                // Note: id is 0 for new items (DB handles autoincrement), image and calories are default/null
+                return new MenuItem(
+                        0,          // calories (default)
+                        category,
+                        desc,
+                        -1,         // temp id for new item
+                        "",         // image path
+                        name,
+                        price,
+                        stock
+                );
+            }
+
+        } catch (ClassCastException e) {
+            Utils.showError("UI Error", "Form structure changed: " + e.getMessage());
+            return null;
         } catch (Exception e) {
             Utils.showError("Error", "Invalid input: " + e.getMessage());
             return null;
@@ -341,7 +371,7 @@ public class AdminDashboardPage extends VBox {
             "Are you sure you want to delete " + item.getName() + "?")) {
             
             try {
-                menuItemDAO.delete(item.getId());
+                menuItemDAO.delete(item);
                 Utils.showInfo("Success", "Menu item deleted successfully");
                 loadMenuItems();
             } catch (Exception e) {

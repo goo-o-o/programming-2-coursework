@@ -2,15 +2,17 @@ package com.bryan.programming2coursework;
 
 import com.bryan.programming2coursework.component.CustomTitleBar;
 import com.bryan.programming2coursework.page.LoginPage;
+import com.bryan.programming2coursework.util.DatabaseManager;
 import com.bryan.programming2coursework.util.Utils;
 import com.bryan.programming2coursework.util.ViewSwitcher;
 import javafx.application.Application;
 import javafx.scene.Scene;
-import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
 import javafx.stage.Stage;
 import javafx.stage.StageStyle;
+
+import java.util.Objects;
 
 /**
  * Main application class for McRonald's Restaurant Management System
@@ -19,7 +21,7 @@ public class McRonalds extends Application {
 
     @Override
     public void start(Stage stage) {
-        // Remove the original windows titlebar
+        // remove original windows bar because I think it is ugly
         stage.initStyle(StageStyle.TRANSPARENT);
 
         // MAIN WINDOW
@@ -27,27 +29,27 @@ public class McRonalds extends Application {
         root.getStyleClass().add("root-window");
         root.setPrefSize(1000, 700);
 
-        // Add custom title bar
+        // custom bar
         CustomTitleBar titleBar = new CustomTitleBar(stage, "McRonald's");
 
-        // Initialize view switcher
+        // set this as the root for the view switcher
         ViewSwitcher.setRoot(root);
 
         root.getChildren().add(titleBar);
 
-        // Load initial login page
+        // switch to login
         ViewSwitcher.switchTo(new LoginPage());
 
-        // Clip the entire window to a rectangle for rounded corners
+        // for rounded corners
         root.setClip(Utils.getClip(root));
 
         Scene scene = new Scene(root, 1000, 700);
-        // Make background transparent for rounded corners
+        // we need to make background transparent since scene has its own rectangular background
         scene.setFill(Color.TRANSPARENT);
 
-        // Load CSS stylesheet
+        // load css
         try {
-            String css = getClass().getResource("style.css").toExternalForm();
+            String css = Objects.requireNonNull(getClass().getResource("style.css")).toExternalForm();
             scene.getStylesheets().add(css);
         } catch (Exception e) {
             System.err.println("Could not load stylesheet: " + e.getMessage());
@@ -59,6 +61,7 @@ public class McRonalds extends Application {
     }
 
     public static void main(String[] args) {
+        DatabaseManager.getInstance().initializeDatabase();
         launch(args);
     }
 }
