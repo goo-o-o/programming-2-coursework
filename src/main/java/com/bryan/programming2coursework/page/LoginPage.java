@@ -65,6 +65,7 @@ public class LoginPage extends HBox {
         // let Enter key login, edit: now with both fields
         password.setOnAction(e -> handleLogin(username.getText(), password.getText()));
         passwordText.setOnAction(e -> handleLogin(username.getText(), password.getText()));
+        username.setOnAction(e -> handleLogin(username.getText(), password.getText()));
 
         Text textPart = new Text("Don't have an account? ");
         textPart.setStyle("-fx-fill: gray");

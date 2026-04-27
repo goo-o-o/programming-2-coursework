@@ -63,7 +63,7 @@ public class UserDAO {
 
             statement.executeUpdate();
 
-            // Get the auto-incremented ID
+            // get the auto-incremented ID
             ResultSet generatedKeys = statement.getGeneratedKeys();
             if (generatedKeys.next()) {
                 user.setId(generatedKeys.getInt(1));
@@ -71,6 +71,52 @@ public class UserDAO {
         } catch (SQLException e) {
             System.err.println("Error creating user: " + e.getMessage());
             throw new IllegalArgumentException("Error creating user: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Update general profile information for an existing user
+     */
+    public void updateProfile(User user) {
+        String sql = "UPDATE users SET username = ?, email = ?, phone = ? WHERE id = ?";
+
+        try (Connection conn = DatabaseManager.getConnection();
+             PreparedStatement statement = conn.prepareStatement(sql)) {
+
+            statement.setString(1, user.getUsername());
+            statement.setString(2, user.getEmail());
+            statement.setString(3, user.getPhone());
+            statement.setInt(4, user.getId());
+
+            int rowsUpdated = statement.executeUpdate();
+            if (rowsUpdated == 0) {
+                throw new SQLException("Updating user profile failed, no rows affected.");
+            }
+        } catch (SQLException e) {
+            System.err.println("Error updating user profile: " + e.getMessage());
+            throw new RuntimeException("Database error during profile update: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Update only the user's password
+     */
+    public void updatePassword(int userId, String newPassword) {
+        String sql = "UPDATE users SET password = ? WHERE id = ?";
+
+        try (Connection conn = DatabaseManager.getConnection();
+             PreparedStatement statement = conn.prepareStatement(sql)) {
+
+            statement.setString(1, newPassword);
+            statement.setInt(2, userId);
+
+            int rowsUpdated = statement.executeUpdate();
+            if (rowsUpdated == 0) {
+                throw new SQLException("Updating password failed, no rows affected.");
+            }
+        } catch (SQLException e) {
+            System.err.println("Error updating password: " + e.getMessage());
+            throw new RuntimeException("Database error during password update: " + e.getMessage());
         }
     }
 

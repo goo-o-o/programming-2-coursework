@@ -142,14 +142,13 @@ public class RegisterPage extends LoginPage {
                 showError(usernameError, "Please enter username");
 //                Utils.showError("Registration Error", "Please enter username");
                 return;
-            } else if (username.trim().length() < 3) {
-                showError(usernameError, "Username must be at least 3 characters");
-//                Utils.showError("Registration Error", "Username must be at least 3 characters");
+            } else if (!Utils.isValidUsername(username)) {
+                showError(usernameError, "Username must be 3-20 characters long and not contain any invalid characters");
                 return;
             }
 
             if (!Utils.isValidPassword(password)) {
-                showError(passwordError, "Password must be at least 6 characters");
+                showError(passwordError, "Password must be at least 6 characters and not contain any invalid characters");
 //                Utils.showError("Registration Error", "Password must be at least 6 characters");
                 return;
             } else if (!password.equals(confirmPassword)) {

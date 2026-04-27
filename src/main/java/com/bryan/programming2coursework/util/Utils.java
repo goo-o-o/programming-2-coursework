@@ -15,6 +15,23 @@ import javafx.stage.Stage;
  * Utility class containing helper methods and constants
  */
 public class Utils {
+    public static String capitalizeWords(String str) {
+        if (str == null || str.isEmpty()) return str;
+
+        String[] words = str.split("\\s+"); // match one or more whitespace
+        StringBuilder sb = new StringBuilder();
+
+        for (String word : words) {
+            if (!word.isEmpty()) {
+                sb.append(Character.toUpperCase(word.charAt(0)))
+                        .append(word.substring(1).toLowerCase())
+                        .append(" ");
+            }
+        }
+        return sb.toString().trim();
+    }
+
+
     /**
      * Unified the button theming code for reusability
      */
@@ -30,12 +47,6 @@ public class Utils {
         }
     }
 
-    public static void handleLogout() {
-        if (Utils.showConfirmation("Logout", "Are you sure you want to logout?")) {
-            SessionManager.getInstance().logout();
-            ViewSwitcher.switchTo(new LoginPage());
-        }
-    }
 
     /**
      * Create an SVG path from string data, also automatically appends a global style class
@@ -97,18 +108,19 @@ public class Utils {
         return phone.replaceAll("[\\s-]", "").matches(phoneRegex);
     }
 
+    public static boolean isValidUsername(String username) {
+        // alphanumeric + symbols
+        return username != null && username.length() > 3 && username.length() < 30 && username.matches("^[\\x21-\\x7E]+$");
+    }
+
     /**
      * Validate password strength
      */
     public static boolean isValidPassword(String password) {
-        return password != null && password.length() >= 6;
-    }
-
-    /**
-     * Format currency in Malaysian Ringgit
-     */
-    public static String formatCurrency(double amount) {
-        return String.format("RM %.2f", amount);
+        // alphanumeric + symbols
+        return password != null &&
+                password.length() >= 3 &&
+                password.matches("^[\\x21-\\x7E]+$");
     }
 
     public static boolean isPositiveNumber(String text) {
@@ -129,9 +141,6 @@ public class Utils {
         }
     }
 
-    /**
-     * Show alert dialog helper
-     */
     public static void showAlert(String title, String message, Alert.AlertType type) {
         Alert alert = new Alert(type);
         // default JavaFX alert is so ugly
@@ -160,23 +169,14 @@ public class Utils {
         alert.showAndWait();
     }
 
-    /**
-     * Show error alert
-     */
     public static void showError(String title, String message) {
         showAlert(title, message, Alert.AlertType.ERROR);
     }
 
-    /**
-     * Show info alert
-     */
     public static void showInfo(String title, String message) {
         showAlert(title, message, Alert.AlertType.INFORMATION);
     }
 
-    /**
-     * Show confirmation dialog
-     */
     public static boolean showConfirmation(String title, String message) {
         Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
         alert.setTitle(title);
@@ -227,6 +227,7 @@ public class Utils {
     /**
      * It's possible to modify URL dimensions from a scene7 server. This is mainly used to hasten loading of images since I don't want to download the files locally, hopefully nothing goes wrong during presentation
      */
+    // hopefully it works during the presentation
     public static String modifyUrlDimensions(String imageUrl, int width, int height) {
         if (imageUrl == null || imageUrl.isEmpty()) return null;
 
@@ -244,4 +245,6 @@ public class Utils {
                 (int) (color.getGreen() * 255),
                 (int) (color.getBlue() * 255));
     }
+
+
 }

@@ -5,9 +5,7 @@ import com.bryan.programming2coursework.model.MenuItem.MenuCategory;
 import com.bryan.programming2coursework.util.DatabaseManager;
 
 import java.sql.*;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -40,10 +38,30 @@ public class MenuItemDAO {
 
     }
 
-    public List<MenuItem> getAllItems() {
-        return getItems(MenuCategory.ALL_CATEGORIES, null, null, true);
-    }
+    /**
+     *
+     * @return a map of <menu_item_id, total sold>
+     */
+    public Map<Integer, Integer> getSalesStats() {
+        Map<Integer, Integer> stats = new HashMap<>();
+        String sql = """
+                    SELECT menu_item_id, SUM(quantity) as total_sold
+                    FROM order_items
+                    GROUP BY menu_item_id
+                """;
 
+        try (Connection conn = DatabaseManager.getConnection();
+             Statement stmt = conn.createStatement();
+             ResultSet rs = stmt.executeQuery(sql)) {
+
+            while (rs.next()) {
+                stats.put(rs.getInt("menu_item_id"), rs.getInt("total_sold"));
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return stats;
+    }
 
     /**
      * Unified search method handling filtering, category, and sorting.
@@ -62,6 +80,7 @@ public class MenuItemDAO {
         }
 
         // search filter only used if query is present
+        // edit: probably not needed now since I've decided to do search filtering in Java but we will keep it
         if (searchQuery != null && !searchQuery.trim().isEmpty()) {
             sql.append(" AND (name LIKE ? OR description LIKE ?)");
             String likePattern = "%" + searchQuery.trim() + "%";
@@ -69,7 +88,7 @@ public class MenuItemDAO {
             params.add(likePattern);
         }
 
-        // 4. Append Sorting
+        // sorting
         if (sortType != null) {
             // hardcoded to prevent sql injection
             sql.append(" ORDER BY ").append(sortType.column).append(" ").append(ascending ? "ASC" : "DESC");
@@ -107,13 +126,13 @@ public class MenuItemDAO {
         String description = rs.getString("description");
         String imagePath = rs.getString("image_path");
         int calories = rs.getInt("calories");
-        // double protein = rs.getDouble("protein"); // Add this if you decide to use it later
+        // double protein = rs.getDouble("protein"); // removed
 
         MenuItem.MenuCategory category;
         String categoryStr = rs.getString("category");
         try {
             category = MenuItem.MenuCategory.valueOf(categoryStr);
-        } catch (IllegalArgumentException | NullPointerException e) {
+        } catch (IllegalArgumentException | NullPointerException e) { // fallback
             category = MenuItem.MenuCategory.ALL_CATEGORIES;
         }
 
@@ -134,7 +153,7 @@ public class MenuItemDAO {
      * Create a new menu item
      */
     public void create(MenuItem item) {
-        String sql = "INSERT INTO menu_items(name, category, price, stock, description, image_path) VALUES(?,?,?,?,?,?)";
+        String sql = "INSERT INTO menu_items(name, category, price, stock, description, image_path, calories) VALUES(?,?,?,?,?,?,?)";
 
         try (Connection conn = DatabaseManager.getConnection();
              PreparedStatement statement = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
@@ -145,10 +164,11 @@ public class MenuItemDAO {
             statement.setInt(4, item.getStockQuantity());
             statement.setString(5, item.getDescription());
             statement.setString(6, item.getImageUrl() != null ? item.getImageUrl() : null);
+            statement.setInt(7, item.getCalories());
 
             statement.executeUpdate();
 
-            // Get auto-generated ID
+            // get auto-generated ids and set the java object to it
             ResultSet rs = statement.getGeneratedKeys();
             if (rs.next()) {
                 item.setId(rs.getInt(1));
@@ -159,29 +179,28 @@ public class MenuItemDAO {
         }
     }
 
-    /**
-     * Update existing menu item (fixing the two-parameter signature from uploaded files)
-     */
+
     public void update(MenuItem originalItem, MenuItem updatedItem) {
-        String sql = "UPDATE menu_items SET name = ?, category = ?, price = ?, stock = ?, description = ?, image_path = ? WHERE id = ?";
+        String sql = "UPDATE menu_items SET name = ?, category = ?, price = ?, stock = ?, description = ?, image_path = ?, calories = ? WHERE id = ?";
 
         try (Connection conn = DatabaseManager.getConnection();
              PreparedStatement statement = conn.prepareStatement(sql)) {
 
             statement.setString(1, updatedItem.getName());
-            statement.setString(2, updatedItem.getCategory().name()); // Store Enum as String
+            statement.setString(2, updatedItem.getCategory().name()); // store as string
             statement.setDouble(3, updatedItem.getPrice());
             statement.setInt(4, updatedItem.getStockQuantity());
             statement.setString(5, updatedItem.getDescription());
-            statement.setString(6, updatedItem.getImageUrl() != null ? updatedItem.getImageUrl().toString() : null);
-            statement.setInt(7, originalItem.getId());
+            statement.setString(6, updatedItem.getImageUrl() != null ? updatedItem.getImageUrl() : null);
+            statement.setInt(7, updatedItem.getCalories());
+            statement.setInt(8, originalItem.getId());
 
             int rowsAffected = statement.executeUpdate();
             if (rowsAffected == 0) {
                 throw new SQLException("Updating menu item failed, no rows affected.");
             }
 
-            // Update the original item's ID to match
+            // update original id in java to match
             updatedItem.setId(originalItem.getId());
         } catch (SQLException e) {
             System.err.println("Error updating menu item: " + e.getMessage());
@@ -189,16 +208,10 @@ public class MenuItemDAO {
         }
     }
 
-    /**
-     * Update menu item (single parameter version for stock updates)
-     */
     public void update(MenuItem item) {
         update(item, item);
     }
 
-    /**
-     * Delete menu item
-     */
     public void delete(MenuItem menuItem) {
         String sql = "DELETE FROM menu_items WHERE id = ?";
 

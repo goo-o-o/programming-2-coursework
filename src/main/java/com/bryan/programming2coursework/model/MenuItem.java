@@ -7,7 +7,7 @@ import java.util.Objects;
 /**
  * MenuItem model representing food/drink items in the menu
  */
-public class MenuItem implements Serializable {
+public class MenuItem {
 
     private int id;
     private String name;

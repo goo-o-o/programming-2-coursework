@@ -1,6 +1,5 @@
 package com.bryan.programming2coursework.model;
 
-import java.io.Serializable;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
@@ -9,7 +8,7 @@ import java.util.List;
 /**
  * Order model representing a customer order
  */
-public class Order implements Serializable {
+public class Order {
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
     private int id;
@@ -17,11 +16,13 @@ public class Order implements Serializable {
     private List<OrderItem> items;
     private LocalDateTime orderDate;
     private OrderStatus status;
-    private double totalAmount;
-    private String customerName;
 
     public enum OrderStatus {
-        PENDING, PREPARING, READY, COMPLETED, CANCELLED
+        PENDING, // yet to cook
+        PREPARING, // cooking
+        READY, // ready to serve
+        COMPLETED, // served
+        CANCELLED // cancelled
     }
 
     public Order() {
@@ -36,10 +37,6 @@ public class Order implements Serializable {
         this.userId = userId;
     }
 
-    public Order(int id, int userId, String customerName) {
-        this(id, userId);
-        this.customerName = customerName;
-    }
 
     // Getters and Setters
     public int getId() {
@@ -64,30 +61,25 @@ public class Order implements Serializable {
 
     public void setItems(List<OrderItem> items) {
         this.items = items;
-        calculateTotal();
     }
 
-    public void addItem(OrderItem item) {
-        // Check if item already exists, if so, increase quantity
+    public void addItem(OrderItem newItem) {
         for (OrderItem existingItem : items) {
-            if (existingItem.getMenuItem().getId() == item.getMenuItem().getId()) {
-                existingItem.setQuantity(existingItem.getQuantity() + item.getQuantity());
-                calculateTotal();
+            if (existingItem.getMenuItem().getId() == newItem.getMenuItem().getId()) {
+                // exists already, update quantity
+                existingItem.setQuantity(existingItem.getQuantity() + newItem.getQuantity());
                 return;
             }
         }
-        items.add(item);
-        calculateTotal();
+        // add as new row if not
+        items.add(newItem);
     }
-
     public void removeItem(OrderItem item) {
         items.remove(item);
-        calculateTotal();
     }
 
     public void clearItems() {
         items.clear();
-        calculateTotal();
     }
 
     public LocalDateTime getOrderDate() {
@@ -110,37 +102,16 @@ public class Order implements Serializable {
         this.status = status;
     }
 
-    public double getTotalAmount() {
-        return totalAmount;
-    }
-
-    public void setTotalAmount(double totalAmount) {
-        this.totalAmount = totalAmount;
-    }
-
-    public String getCustomerName() {
-        return customerName;
-    }
-
-    public void setCustomerName(String customerName) {
-        this.customerName = customerName;
-    }
-
-    public void calculateTotal() {
-        totalAmount = items.stream()
+    public double getTotalPrice() {
+        return items.stream()
                 .mapToDouble(OrderItem::getSubtotal)
                 .sum();
     }
 
-    public int getTotalItems() {
-        return items.stream()
-                .mapToInt(OrderItem::getQuantity)
-                .sum();
-    }
 
     @Override
     public String toString() {
         return String.format("Order #%d - %s - RM%.2f - %s",
-                id, getFormattedOrderDate(), totalAmount, status);
+                id, getFormattedOrderDate(), getTotalPrice(), status);
     }
 }

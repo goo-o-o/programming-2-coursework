@@ -1,5 +1,6 @@
 package com.bryan.programming2coursework.page;
 
+import com.bryan.programming2coursework.component.MenuItemCard;
 import com.bryan.programming2coursework.component.SortButton;
 import com.bryan.programming2coursework.dao.MenuItemDAO;
 import com.bryan.programming2coursework.dao.OrderDAO;
@@ -10,23 +11,13 @@ import com.bryan.programming2coursework.util.Constants;
 import com.bryan.programming2coursework.util.SessionManager;
 import com.bryan.programming2coursework.util.Utils;
 import com.bryan.programming2coursework.util.ViewSwitcher;
-import javafx.animation.*;
-import javafx.collections.FXCollections;
-import javafx.collections.ObservableList;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.control.*;
-import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.effect.DropShadow;
-import javafx.scene.image.Image;
-import javafx.scene.image.ImageView;
 import javafx.scene.layout.*;
 import javafx.scene.paint.Color;
-import javafx.scene.text.Font;
-import javafx.scene.text.FontWeight;
-import javafx.scene.text.TextAlignment;
-import javafx.util.Duration;
 
 import java.util.List;
 
@@ -37,9 +28,7 @@ public class CustomerDashboardPage extends VBox {
 
     private MenuItemDAO menuItemDAO;
     private OrderDAO orderDAO;
-    private Order currentOrder;
 
-    private TableView<OrderItem> cartTable;
     private Label totalLabel;
 
     private MenuItemDAO.SortType activeSortType;
@@ -48,10 +37,9 @@ public class CustomerDashboardPage extends VBox {
     public CustomerDashboardPage() {
         this.menuItemDAO = MenuItemDAO.getInstance();
         this.orderDAO = OrderDAO.getInstance();
-        this.currentOrder = new Order(0, SessionManager.getInstance().getCurrentUserId(),
-                SessionManager.getInstance().getCurrentUser().getUsername());
         initializeUI();
-        refreshMenu(); // Start with a fresh load of items
+        updateCart();
+        refreshMenu();
     }
 
     private ScrollPane menuScrollPane;
@@ -62,7 +50,7 @@ public class CustomerDashboardPage extends VBox {
     private String currentSearchQuery = "";
 
     private void initializeUI() {
-        this.setStyle("-fx-background-color: #fdfaf4;");
+        this.setStyle("-fx-background-color: " + Constants.CREAM);
         this.setPadding(new Insets(30));
 
         HBox mainLayout = new HBox(40);
@@ -70,7 +58,7 @@ public class CustomerDashboardPage extends VBox {
         // sidebar is categories
         VBox sidebar = createSidebar();
 
-        VBox mainContent = new VBox(25);
+        VBox mainContent = new VBox(15);
         HBox.setHgrow(mainContent, Priority.ALWAYS);
 
         // welcome
@@ -116,28 +104,32 @@ public class CustomerDashboardPage extends VBox {
         clearSort.setBorder(Border.EMPTY);
         clearSort.setBackground(Background.EMPTY);
         clearSort.setCursor(javafx.scene.Cursor.HAND);
-        clearSort.getStyleClass().add("clear-sort-btn");
+        clearSort.getStyleClass().add("hover-btn");
         clearSort.setPrefSize(20, 20);
         clearSort.setOnAction(e -> {
-            priceSort.setActive(false);
-            stockSort.setActive(false);
-            calSort.setActive(false);
-            this.activeSortType = null;
-            refreshMenu();
+            // small performance tweak
+            if (activeSortType != null) {
+                priceSort.setActive(false);
+                stockSort.setActive(false);
+                calSort.setActive(false);
+                this.activeSortType = null;
+                refreshMenu();
+            }
         });
 
         TextField searchField = new TextField();
         searchField.setPromptText("Search...");
-        searchField.setOnKeyTyped(e -> {
-            this.currentSearchQuery = searchField.getText();
-            refreshMenu();
+
+        searchField.textProperty().addListener((observable, oldValue, newValue) -> {
+            this.currentSearchQuery = newValue.toLowerCase();
+            applyFilters();
         });
 
         sortBox.getChildren().addAll(sortLabel, priceSort, stockSort, calSort, clearSort, Utils.getHorizontalSpacer(), searchField);
 
         // actual menu grid
         menuGrid = new FlowPane(20, 20);
-        menuGrid.setPadding(new Insets(10));
+        menuGrid.setPadding(new Insets(5));
         menuGrid.setAlignment(Pos.CENTER);
         menuScrollPane = new ScrollPane(menuGrid);
         menuScrollPane.setFitToWidth(true);
@@ -153,89 +145,26 @@ public class CustomerDashboardPage extends VBox {
         this.getChildren().add(mainLayout);
     }
 
-    private VBox createItemCard(MenuItem item) {
-        VBox card = new VBox(10);
-        card.setStyle("-fx-background-color: white; -fx-background-radius: 20; -fx-padding: 15; -fx-alignment: top-center;");
-        card.setPrefWidth(225);
-        card.setMinWidth(225);
-        card.setEffect(new DropShadow(10, Color.rgb(0, 0, 0, 0.1)));
+    private void applyFilters() {
+        for (Node node : menuGrid.getChildren()) {
+            if (node instanceof VBox card) {
+                MenuItem item = (MenuItem) card.getUserData();
 
-        // stats =====================================
-        Label calTag = new Label(item.getCalories() + " kcal");
-        calTag.setStyle("-fx-background-color: #f4f4f4; -fx-padding: 5 10; -fx-background-radius: 10; " +
-                "-fx-font-size: 10px; -fx-text-fill: #888; -fx-font-weight: bold;");
+                boolean matchesCategory = (currentCategory == MenuItem.MenuCategory.ALL_CATEGORIES)
+                        || item.getCategory() == currentCategory;
 
-        Label stockTag = new Label("Qty: " + item.getStockQuantity());
-        String stockColor = item.getStockQuantity() < 5 ? Constants.MCD_RED_HEX : "gray";
-        stockTag.setStyle("-fx-background-color: #f4f4f4; -fx-padding: 5 10; -fx-background-radius: 10; " +
-                "-fx-font-size: 10px; -fx-text-fill: " + stockColor + "; -fx-font-weight: bold;");
+                boolean matchesSearch = currentSearchQuery.isEmpty() || currentSearchQuery.isBlank() || item.getName().toLowerCase().contains(currentSearchQuery)
+                        || item.getDescription().toLowerCase().contains(currentSearchQuery);
 
-        Region hSpacer = Utils.getHorizontalSpacer();
+                boolean isVisible = matchesCategory && matchesSearch;
 
-        HBox statsBox = new HBox(calTag, hSpacer, stockTag);
-        statsBox.setAlignment(Pos.CENTER);
-        statsBox.setMaxWidth(Double.MAX_VALUE);
-
-        // image =====================================
-        ImageView imageView = new ImageView(new Image(Utils.modifyUrlDimensions(item.getImageUrl(), 300, 300), 300, 300, true, true, true));
-        imageView.setFitHeight(100);
-        imageView.setFitWidth(100);
-        imageView.setPreserveRatio(true);
-
-        // name =====================================
-        Label nameLabel = new Label(item.getName());
-        nameLabel.setWrapText(true);
-        nameLabel.setAlignment(Pos.CENTER);
-        nameLabel.setTextAlignment(TextAlignment.CENTER);
-        nameLabel.setMaxWidth(Double.MAX_VALUE);
-        nameLabel.setStyle("-fx-font-weight: bold; -fx-font-size: 16px; -fx-text-fill: #290d0b;");
-
-        // desc =====================================
-        Label descLabel = new Label(item.getDescription());
-        descLabel.setStyle("-fx-font-size: 12px; -fx-text-fill: gray; -fx-italic: true; -fx-text-alignment: center;");
-        descLabel.setWrapText(true);
-        descLabel.setOpacity(0);
-        descLabel.setMaxHeight(0);
-        descLabel.setManaged(false);
-
-        // price and add =====================================
-        Label priceLabel = new Label(String.format("RM %.2f", item.getPrice()));
-        priceLabel.setStyle("-fx-text-fill: #ffbc0d; -fx-font-weight: 900; -fx-font-size: 18px;");
-
-        Button addBtn = new Button("Add to Cart");
-        addBtn.setMaxWidth(Double.MAX_VALUE);
-        addBtn.setCursor(javafx.scene.Cursor.HAND);
-        addBtn.setStyle("-fx-background-color: #ffbc0d; -fx-background-radius: 15; -fx-text-fill: white; -fx-font-weight: bold;");
-        addBtn.setOnAction(e -> addToCart(item));
-
-        // Push button to the very bottom
-        Region vSpacer = Utils.getVerticalSpacer();
-
-        card.getChildren().addAll(statsBox, imageView, nameLabel, descLabel, vSpacer, priceLabel, addBtn);
-
-        // Animations
-        card.setOnMouseEntered(e -> {
-            card.setStyle("-fx-background-color: #fff9e6; -fx-background-radius: 20; -fx-padding: 15; -fx-alignment: top-center; -fx-border-color: #ffbc0d; -fx-border-radius: 20;");
-            descLabel.setManaged(true);
-            double targetHeight = descLabel.prefHeight(card.getWidth() - 30) + 10;
-            Timeline grow = new Timeline(new KeyFrame(Duration.millis(300), new KeyValue(descLabel.maxHeightProperty(), targetHeight)));
-            FadeTransition fadeIn = new FadeTransition(Duration.millis(300), descLabel);
-            fadeIn.setToValue(1);
-            new ParallelTransition(grow, fadeIn).play();
-        });
-
-        card.setOnMouseExited(e -> {
-            card.setStyle("-fx-background-color: white; -fx-background-radius: 20; -fx-padding: 15; -fx-alignment: top-center; -fx-border-color: transparent;");
-            Timeline shrink = new Timeline(new KeyFrame(Duration.millis(200), new KeyValue(descLabel.maxHeightProperty(), 0)));
-            FadeTransition fadeOut = new FadeTransition(Duration.millis(200), descLabel);
-            fadeOut.setToValue(0);
-            ParallelTransition hide = new ParallelTransition(shrink, fadeOut);
-            hide.setOnFinished(evt -> descLabel.setManaged(false));
-            hide.play();
-        });
-
-        return card;
+                // toggle visibility and DOM update
+                card.setVisible(isVisible);
+                card.setManaged(isVisible);
+            }
+        }
     }
+
 
     private VBox createSidebar() {
         VBox sidebar = new VBox(15);
@@ -273,7 +202,7 @@ public class CustomerDashboardPage extends VBox {
                 isAscending
         );
         for (MenuItem item : items) {
-            menuGrid.getChildren().add(createItemCard(item));
+            menuGrid.getChildren().add(new MenuItemCard(item, this::addToCart)); // method reference
         }
     }
 
@@ -282,57 +211,114 @@ public class CustomerDashboardPage extends VBox {
         this.activeSortType = type;
         this.isAscending = clickedButton.getIsAscending();
         refreshMenu();
+        applyFilters();
+    }
+
+    private VBox cartItemContainer;
+
+    private void updateCart() {
+        cartItemContainer.getChildren().clear();
+        for (OrderItem item : SessionManager.getInstance().getCurrentOrder().getItems()) {
+            cartItemContainer.getChildren().add(createCartItemRow(item));
+        }
+        totalLabel.setText(String.format("RM %.2f", SessionManager.getInstance().getCurrentOrder().getTotalPrice()));
+    }
+
+    private HBox createCartItemRow(OrderItem orderItem) {
+        HBox row = new HBox(12);
+        row.setAlignment(Pos.CENTER_LEFT);
+        row.setPadding(new Insets(10));
+        row.setStyle("-fx-background-color: #f9f9f9; -fx-background-radius: 15;");
+
+        VBox details = new VBox(2);
+        Label name = new Label(orderItem.getMenuItem().getName());
+        name.setStyle("-fx-font-weight: bold; -fx-text-fill: #290d0b; -fx-font-size: 13px;");
+
+        Label qtyAndPrice = new Label(orderItem.getQuantity() + "x  RM " + String.format("%.2f", orderItem.getMenuItem().getPrice()));
+        qtyAndPrice.setStyle("-fx-text-fill: #888; -fx-font-size: 11px;");
+
+        Label subtotal = new Label(String.format("RM %.2f", orderItem.getSubtotal()));
+        subtotal.setStyle("-fx-font-weight: bold; -fx-text-fill: #290d0b;");
+
+        details.getChildren().addAll(name, qtyAndPrice, subtotal);
+
+
+        HBox.setHgrow(details, Priority.ALWAYS);
+
+
+        // remove button
+        Button removeBtn = new Button();
+        removeBtn.setGraphic(Utils.getSVG(Constants.CLOSE)); // Using your suggested SVG
+        removeBtn.setStyle("-fx-background-color: transparent; -fx-cursor: hand; -fx-padding: 5");
+        removeBtn.getStyleClass().add("hover-btn");
+        removeBtn.setScaleX(2);
+        removeBtn.setScaleY(2);
+        removeBtn.setOnAction(e -> removeFromCart(orderItem));
+
+        row.getChildren().addAll(details, removeBtn);
+        return row;
     }
 
     private VBox createCartSection() {
-        VBox section = new VBox(10);
-        section.setPadding(new Insets(15));
-        section.setPrefWidth(320);
-        section.setStyle("-fx-background-color: white; -fx-background-radius: 15;");
-        section.setEffect(new DropShadow(5, Color.LIGHTGRAY));
+        VBox section = new VBox(20);
+        section.setPadding(new Insets(25));
+        section.setPrefWidth(350);
+        section.setStyle("-fx-background-color: white; -fx-background-radius: 25;");
+        section.setEffect(new DropShadow(15, Color.rgb(0, 0, 0, 0.08)));
 
-        Label cartLabel = new Label("Shopping Cart");
-        cartLabel.setFont(Font.font("System", FontWeight.BOLD, 20));
+        HBox header = new HBox(10);
+        header.setAlignment(Pos.CENTER_LEFT);
+        Label cartLabel = new Label("My Cart");
+        cartLabel.setStyle("-fx-font-size: 22px; -fx-font-weight: 900; -fx-text-fill: #290d0b;");
+        header.getChildren().addAll(cartLabel, Utils.getHorizontalSpacer(), Utils.getSVG(Constants.CART));
 
-        cartTable = new TableView<>();
-        VBox.setVgrow(cartTable, Priority.ALWAYS);
+        // main container
+        VBox itemContainer = new VBox(15);
+        itemContainer.setStyle("-fx-background-color: transparent;");
 
-        TableColumn<OrderItem, String> itemCol = new TableColumn<>("Item");
-        itemCol.setCellValueFactory(data -> new javafx.beans.property.SimpleStringProperty(data.getValue().getMenuItem().getName()));
-        itemCol.setPrefWidth(120);
+        // for now wrap it in a ScrollPane
+        ScrollPane scrollPane = new ScrollPane(itemContainer);
+        scrollPane.setFitToWidth(true);
+        scrollPane.setStyle("-fx-background: transparent; -fx-background-color: transparent; -fx-padding: 0;");
+        scrollPane.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
+        VBox.setVgrow(scrollPane, Priority.ALWAYS);
 
-        TableColumn<OrderItem, Integer> qtyCol = new TableColumn<>("Qty");
-        qtyCol.setCellValueFactory(new PropertyValueFactory<>("quantity"));
-        qtyCol.setPrefWidth(45);
+        // footer
+        VBox footer = new VBox(15);
+        footer.setPadding(new Insets(10, 0, 0, 0));
 
-        TableColumn<OrderItem, Double> subtotalCol = new TableColumn<>("Subtotal");
-        subtotalCol.setCellValueFactory(data -> new javafx.beans.property.SimpleObjectProperty<>(data.getValue().getSubtotal()));
-        subtotalCol.setPrefWidth(70);
+        Separator sep = new Separator();
+        sep.setOpacity(0.5);
 
-        TableColumn<OrderItem, Void> removeCol = new TableColumn<>("");
-        removeCol.setCellFactory(col -> new TableCell<>() {
-            private final Button removeBtn = new Button("X");
-            {
-                removeBtn.setStyle("-fx-text-fill: #ff4444; -fx-background-color: transparent; -fx-font-weight: bold;");
-                removeBtn.setOnAction(e -> removeFromCart(getTableView().getItems().get(getIndex())));
-            }
-            @Override protected void updateItem(Void item, boolean empty) {
-                super.updateItem(item, empty);
-                setGraphic(empty ? null : removeBtn);
-            }
-        });
+        HBox totalBox = new HBox();
+        Label totalTitle = new Label("Total Amount");
+        totalTitle.setStyle("-fx-text-fill: #888; -fx-font-weight: bold;");
 
-        cartTable.getColumns().addAll(itemCol, qtyCol, subtotalCol, removeCol);
+        totalLabel = new Label("RM 0.00");
+        totalLabel.setStyle("-fx-text-fill: #290d0b; -fx-font-size: 20px; -fx-font-weight: 900;");
 
-        totalLabel = new Label("Total: RM 0.00");
-        totalLabel.setFont(Font.font("System", FontWeight.BOLD, 18));
+        totalBox.getChildren().addAll(totalTitle, Utils.getHorizontalSpacer(), totalLabel);
+        totalBox.setAlignment(Pos.CENTER_LEFT);
 
-        Button checkoutBtn = new Button("Checkout");
+        Button checkoutBtn = new Button("Confirm Checkout");
         checkoutBtn.setMaxWidth(Double.MAX_VALUE);
-        checkoutBtn.setStyle("-fx-background-color: #4CAF50; -fx-text-fill: white; -fx-font-weight: bold; -fx-padding: 10;");
+        checkoutBtn.setCursor(javafx.scene.Cursor.HAND);
+        checkoutBtn.setStyle("-fx-background-color: #ffbc0d; -fx-text-fill: white; -fx-font-weight: bold; " +
+                "-fx-font-size: 16px; -fx-padding: 12; -fx-background-radius: 15;");
+
+        // simple checkout hover anim
+        checkoutBtn.setOnMouseEntered(e -> checkoutBtn.setStyle(checkoutBtn.getStyle() + "-fx-scale-x: 1.04; -fx-scale-y: 1.04;"));
+        checkoutBtn.setOnMouseExited(e -> checkoutBtn.setStyle(checkoutBtn.getStyle().replace("-fx-scale-x: 1.04; -fx-scale-y: 1.04;", "")));
+
         checkoutBtn.setOnAction(e -> checkout());
 
-        section.getChildren().addAll(cartLabel, cartTable, totalLabel, checkoutBtn);
+        footer.getChildren().addAll(sep, totalBox, checkoutBtn);
+
+        section.getChildren().addAll(header, scrollPane, footer);
+
+        // store in class field so that updateCart() can access
+        this.cartItemContainer = itemContainer;
+
         return section;
     }
 
@@ -342,62 +328,80 @@ public class CustomerDashboardPage extends VBox {
             return;
         }
 
-        TextInputDialog dialog = new TextInputDialog("1");
+        Dialog<Integer> dialog = new Dialog<>();
         dialog.setTitle("Add to Cart");
-        dialog.setHeaderText("Add " + item.getName() + " to cart");
-        dialog.setContentText("Quantity:");
+        dialog.setHeaderText("Add " + item.getName() + " to Cart");
 
-        dialog.showAndWait().ifPresent(qtyStr -> {
-            try {
-                int qty = Integer.parseInt(qtyStr);
-                if (qty <= 0) {
-                    Utils.showError("Invalid Quantity", "Quantity must be positive");
-                    return;
-                }
-                if (qty > item.getStockQuantity()) {
-                    Utils.showError("Insufficient Stock", "Only " + item.getStockQuantity() + " available");
-                    return;
-                }
-                currentOrder.addItem(new OrderItem(item, qty));
-                updateCart();
-            } catch (NumberFormatException e) {
-                Utils.showError("Invalid Input", "Please enter a valid number");
+        // add button
+        ButtonType addButtonType = new ButtonType("Add to Cart", ButtonBar.ButtonData.OK_DONE);
+        dialog.getDialogPane().setMaxWidth(Double.MAX_VALUE);
+        dialog.getDialogPane().getButtonTypes().addAll(addButtonType);
+
+        int amtInCart = SessionManager.getInstance().getCurrentOrder().getItems()
+                .stream().filter(orderItem -> orderItem.getMenuItem().getId() == item.getId()).mapToInt(OrderItem::getQuantity).sum();
+        int stockLeft = item.getStockQuantity() - amtInCart;
+
+        if (stockLeft <= 0) {
+            Utils.showError("Out of Stock", "You have already added all\navailable stock to your cart!");
+            return;
+        }
+
+        // spinner with max range of the available stock
+        Spinner<Integer> qtySpinner = new Spinner<>(1, stockLeft, 1);
+        qtySpinner.setEditable(true);
+        qtySpinner.setMaxWidth(Double.MAX_VALUE);
+        qtySpinner.setStyle("-fx-background-color: white; -fx-border-color: #3b82f6; -fx-border-radius: 5;");
+
+
+
+        VBox content = new VBox(10);
+        content.setPadding(new Insets(10, 10, 10, 10));
+        content.getChildren().addAll(new Label("Select Quantity (" + stockLeft + " left):"), qtySpinner);
+        content.setAlignment(Pos.CENTER);
+        dialog.getDialogPane().setContent(content);
+
+        // convert to integer
+        dialog.setResultConverter(dialogButton -> {
+            if (dialogButton == addButtonType) {
+                return qtySpinner.getValue();
             }
+            return null;
+        });
+
+        dialog.showAndWait().ifPresent(qty -> {
+            SessionManager.getInstance().getCurrentOrder().addItem(new OrderItem(item, qty));
+            updateCart();
+            Utils.showInfo("Added to Cart", qty + "x " + item.getName() + " added successfully.");
         });
     }
 
     private void removeFromCart(OrderItem item) {
-        currentOrder.removeItem(item);
+        SessionManager.getInstance().getCurrentOrder().removeItem(item);
         updateCart();
     }
 
-    private void updateCart() {
-        cartTable.setItems(FXCollections.observableArrayList(currentOrder.getItems()));
-        totalLabel.setText(String.format("Total: RM %.2f", currentOrder.getTotalAmount()));
-    }
 
     private void checkout() {
-        if (currentOrder.getItems().isEmpty()) {
+        if (SessionManager.getInstance().getCurrentOrder().getItems().isEmpty()) {
             Utils.showError("Empty Cart", "Please add items to cart before checkout");
             return;
         }
 
-        if (Utils.showConfirmation("Checkout", String.format("Proceed with order?\nTotal: RM %.2f", currentOrder.getTotalAmount()))) {
+        if (Utils.showConfirmation("Checkout", String.format("Proceed with order?\nTotal: RM %.2f", SessionManager.getInstance().getCurrentOrder().getTotalPrice()))) {
             try {
                 // decrease stock for all items
-                for (OrderItem item : currentOrder.getItems()) {
+                for (OrderItem item : SessionManager.getInstance().getCurrentOrder().getItems()) {
                     MenuItem menuItem = item.getMenuItem();
                     menuItem.decreaseStock(item.getQuantity());
                     menuItemDAO.update(menuItem);
                 }
 
                 // save order
-                orderDAO.create(currentOrder);
-                Utils.showInfo("Order Placed", "Your order has been placed successfully!\nOrder ID: " + currentOrder.getId());
+                orderDAO.create(SessionManager.getInstance().getCurrentOrder());
+                Utils.showInfo("Order Placed", "Your order has been placed successfully!\nOrder ID: " + SessionManager.getInstance().getCurrentOrder().getId());
 
                 // reset cart
-                currentOrder = new Order(0, SessionManager.getInstance().getCurrentUserId(),
-                        SessionManager.getInstance().getCurrentUser().getUsername());
+                SessionManager.getInstance().setCurrentOrder(new Order(0, SessionManager.getInstance().getCurrentUserId()));
                 updateCart();
                 refreshMenu(); // refresh stock display
             } catch (Exception e) {

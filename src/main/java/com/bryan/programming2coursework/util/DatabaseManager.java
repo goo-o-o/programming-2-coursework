@@ -49,38 +49,61 @@ public class DatabaseManager {
         }
     }
 
-    /**
-     * Create database tables if they don't exist
-     */
     private void createTables(Connection conn) throws SQLException {
-        Statement stmt = conn.createStatement();
+        try (Statement stmt = conn.createStatement()) {
+            stmt.execute("""
+                        CREATE TABLE IF NOT EXISTS users (
+                            id INTEGER PRIMARY KEY AUTOINCREMENT,
+                            username TEXT NOT NULL UNIQUE,
+                            password TEXT NOT NULL,
+                            role TEXT NOT NULL,
+                            email TEXT NOT NULL,
+                            phone TEXT NOT NULL
+                        )
+                    """);
 
-        // Users table
-        stmt.execute("""
-                    CREATE TABLE IF NOT EXISTS users (
-                        id INTEGER PRIMARY KEY AUTOINCREMENT,
-                        username TEXT NOT NULL UNIQUE,
-                        password TEXT NOT NULL,
-                        role TEXT NOT NULL,
-                        email TEXT NOT NULL,
-                        phone TEXT NOT NULL
-                    )
-                """);
+            // menu items
+            stmt.execute("""
+                        CREATE TABLE IF NOT EXISTS menu_items (
+                            id INTEGER PRIMARY KEY AUTOINCREMENT,
+                            name TEXT NOT NULL,
+                            category TEXT NOT NULL,
+                            price REAL NOT NULL,
+                            stock INTEGER NOT NULL,
+                            description TEXT,
+                            image_path TEXT,
+                            calories INTEGER NOT NULL
+                        )
+                    """);
 
-        // Menu items table
-        stmt.execute("""
-                    CREATE TABLE IF NOT EXISTS menu_items (
-                        id INTEGER PRIMARY KEY AUTOINCREMENT,
-                        name TEXT NOT NULL,
-                        category TEXT NOT NULL,
-                        price REAL NOT NULL,
-                        stock INTEGER NOT NULL,
-                        description TEXT,
-                        image_path TEXT
-                    )
-                """);
+            // orders
+            stmt.execute("""
+                        CREATE TABLE IF NOT EXISTS orders (
+                            id INTEGER PRIMARY KEY AUTOINCREMENT,
+                            user_id INTEGER NOT NULL,
+                            order_date TEXT NOT NULL,
+                            status TEXT NOT NULL,
+                            FOREIGN KEY (user_id) REFERENCES users(id)
+                        )
+                    """);
 
-        stmt.close();
+            // this depends on both orders and menu_items so it's created last
+            stmt.execute("""
+                        CREATE TABLE IF NOT EXISTS order_items (
+                            id INTEGER PRIMARY KEY AUTOINCREMENT,
+                            order_id INTEGER NOT NULL,
+                            menu_item_id INTEGER NOT NULL,
+                            quantity INTEGER NOT NULL,
+                            FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE,
+                            FOREIGN KEY (menu_item_id) REFERENCES menu_items(id)
+                        )
+                    """);
+
+        } catch (SQLException e) {
+            System.err.println("Database Creation Error: " + e.getMessage());
+            e.printStackTrace();
+            throw e;
+        }
     }
 
     /**
@@ -132,7 +155,7 @@ public class DatabaseManager {
         stmt.setString(2, "customer123");
         stmt.setString(3, UserRole.CUSTOMER.toString());
         stmt.setString(4, "customer@example.com");
-        stmt.setString(5, "0987654321");
+        stmt.setString(5, "0163432567");
         stmt.executeUpdate();
 
         stmt.close();
