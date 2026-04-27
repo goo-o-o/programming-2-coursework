@@ -46,6 +46,23 @@ public class UserDAO {
         return Optional.empty();
     }
 
+    public String getNameById(int id) {
+        String sql = "SELECT username FROM users WHERE id = ?";
+        try (Connection conn = DatabaseManager.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+            pstmt.setInt(1, id);
+            ResultSet rs = pstmt.executeQuery();
+
+            if (rs.next()) {
+                return rs.getString("username");
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return "Unknown User"; // default
+    }
+
     /**
      * Create a new user
      */

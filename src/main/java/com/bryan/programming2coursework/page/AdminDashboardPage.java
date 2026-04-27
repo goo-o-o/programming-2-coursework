@@ -2,6 +2,7 @@ package com.bryan.programming2coursework.page;
 
 import com.bryan.programming2coursework.dao.MenuItemDAO;
 import com.bryan.programming2coursework.dao.OrderDAO;
+import com.bryan.programming2coursework.dao.UserDAO;
 import com.bryan.programming2coursework.model.MenuItem;
 import com.bryan.programming2coursework.model.Order;
 import com.bryan.programming2coursework.model.OrderItem;
@@ -72,6 +73,13 @@ public class AdminDashboardPage extends VBox {
         TableColumn<Order, Integer> idCol = new TableColumn<>("Order ID");
         idCol.setCellValueFactory(new PropertyValueFactory<>("id"));
 
+        TableColumn<Order, String> nameCol = new TableColumn<>("Customer");
+        nameCol.setCellValueFactory(cellData -> {
+            int userId = cellData.getValue().getUserId();
+            String customerInfo = userId + " | " + UserDAO.getInstance().getNameById(userId);
+            return new SimpleStringProperty(customerInfo);
+        });
+
         TableColumn<Order, String> dateCol = new TableColumn<>("Date");
         dateCol.setCellValueFactory(cellData -> {
             LocalDateTime date = cellData.getValue().getOrderDate();
@@ -130,7 +138,7 @@ public class AdminDashboardPage extends VBox {
         });
 
 
-        orderTable.getColumns().addAll(idCol, dateCol, totalCol, detailsCol, statusCol, actionCol);
+        orderTable.getColumns().addAll(idCol, nameCol, dateCol, totalCol, detailsCol, statusCol, actionCol);
 
         // initial load
         orderTable.setItems(FXCollections.observableArrayList(orderDAO.getAllOrders()));
