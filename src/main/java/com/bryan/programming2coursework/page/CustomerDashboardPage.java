@@ -353,7 +353,6 @@ public class CustomerDashboardPage extends VBox {
         qtySpinner.setStyle("-fx-background-color: white; -fx-border-color: #3b82f6; -fx-border-radius: 5;");
 
 
-
         VBox content = new VBox(10);
         content.setPadding(new Insets(10, 10, 10, 10));
         content.getChildren().addAll(new Label("Select Quantity (" + stockLeft + " left):"), qtySpinner);
@@ -369,9 +368,13 @@ public class CustomerDashboardPage extends VBox {
         });
 
         dialog.showAndWait().ifPresent(qty -> {
-            SessionManager.getInstance().getCurrentOrder().addItem(new OrderItem(item, qty));
-            updateCart();
-            Utils.showInfo("Added to Cart", qty + "x " + item.getName() + " added successfully.");
+            try {
+                SessionManager.getInstance().getCurrentOrder().addItem(new OrderItem(item, qty));
+                updateCart();
+                Utils.showInfo("Added to Cart", qty + "x " + item.getName() + " added successfully.");
+            } catch (NumberFormatException ignored) {
+                // to suppress error message
+            }
         });
     }
 

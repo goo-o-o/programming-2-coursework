@@ -54,10 +54,14 @@ public class RegisterPage extends LoginPage {
         VBox registerFields = new VBox(10);
 
         TextField username = new TextField();
+        Utils.filterSpace(username);
+
         username.setPromptText("Username");
 
         PasswordField password = new PasswordField();
         password.setPromptText("Password (min 6 characters)");
+        Utils.filterSpace(password);
+
         TextField passwordText = new TextField();
         passwordText.setPromptText("Password (min 6 characters)");
 

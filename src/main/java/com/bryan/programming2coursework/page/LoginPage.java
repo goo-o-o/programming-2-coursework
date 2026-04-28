@@ -48,11 +48,14 @@ public class LoginPage extends HBox {
         VBox loginFields = new VBox(10);
         TextField username = new TextField();
         username.setPromptText("Username");
+        Utils.filterSpace(username);
 
         PasswordField password = new PasswordField();
         password.setPromptText("Password");
+        Utils.filterSpace(password);
         TextField passwordText = new TextField();
         passwordText.setPromptText("Password");
+        Utils.filterSpace(passwordText);
 
         StackPane passwordRow = Utils.createPasswordFieldWithToggle(password, passwordText);
 

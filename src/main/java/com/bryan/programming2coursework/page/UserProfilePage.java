@@ -104,9 +104,12 @@ public class UserProfilePage extends HBox {
         userProfile.setStyle("-fx-font-size: 18px; -fx-font-weight: bold;");
 
         TextField nameField = new TextField(currentUser.getUsername());
+        Utils.filterSpace(nameField);
         String FIELD_STYLE = "-fx-background-color: transparent; -fx-border-color: #eee; -fx-border-width: 0 0 1 0; -fx-padding: 5 0;";
         nameField.setStyle(FIELD_STYLE);
         TextField emailField = new TextField(currentUser.getEmail());
+        Utils.filterSpace(emailField);
+
         emailField.setStyle(FIELD_STYLE);
         TextField phoneField = new TextField(currentUser.getPhone());
         phoneField.setStyle(FIELD_STYLE);
@@ -140,6 +143,9 @@ public class UserProfilePage extends HBox {
         curPf.setStyle(FIELD_STYLE);
         newPf.setStyle(FIELD_STYLE);
         confPf.setStyle(FIELD_STYLE);
+        Utils.filterSpace(curPf);
+        Utils.filterSpace(newPf);
+        Utils.filterSpace(confPf);
 
         Button changePassBtn = new Button("Change Password");
         changePassBtn.setMaxWidth(Double.MAX_VALUE);

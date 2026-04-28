@@ -108,6 +108,14 @@ public class Utils {
         return phone.replaceAll("[\\s-]", "").matches(phoneRegex);
     }
 
+    public static void filterSpace(TextField t) {
+        t.setTextFormatter(new TextFormatter<>(change -> change.getText().contains(" ") ? null : change));
+    }
+    public static void filterSpaceLimitLength(TextField t, int length) {
+        t.setTextFormatter(new TextFormatter<>(change -> (change.getText().contains(" ") || change.getText().length() > length) ? null : change));
+    }
+
+
     public static boolean isValidUsername(String username) {
         // alphanumeric + symbols
         return username != null && username.length() > 3 && username.length() < 30 && username.matches("^[\\x21-\\x7E]+$");
